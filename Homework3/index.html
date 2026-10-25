@@ -1,36 +1,462 @@
 <!doctype html>
-<html>
+<html lang="ko">
   <head>
-    <meta charset="UTF-8" />
-    <!-- 모바일 필수: 폰에서 PC용 화면처럼 축소되는 것 방지 -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
-    <title>Homework3</title>
-    <script src="https://cdn.jsdelivr.net/npm/p5@2/lib/p5.min.js"></script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>정주행 일지</title>
+
+    <!-- 글꼴: 한글 제목 Black Han Sans · DVD 라벨/숫자 Bebas Neue · 본문 Noto Sans KR -->
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&display=swap"
+    />
+
     <style>
-      html, body {
-        height: 100%;
-        margin: 0;
-        overflow: hidden;
-      }
-      /* 터치 필수: 브라우저가 스크롤/확대 대신 코드에 터치를 넘기도록 함.
-         iOS Safari는 canvas가 아니라 body에 걸어야 인정함 */
       body {
-        touch-action: none;
+        padding: 0;
+        margin: 0;
+        background-color: #161618;
+        overflow: hidden;
         overscroll-behavior: none;
-        -webkit-user-select: none;
         user-select: none;
+        -webkit-user-select: none;
         -webkit-touch-callout: none;
+        font-family: "Noto Sans KR", sans-serif;
       }
-      canvas {
-        touch-action: none;
+
+      /* ================================================
+         HTML 부분 (sketch.js의 mk()가 class 이름으로 붙임)
+         검색창(.search-wrap) · 새 티켓 미리보기 · 감상·키워드 카드 · 회차 메모 카드 · 폴더 카드
+         ================================================ */
+
+      /* ── 위쪽 검색창 (위치·크기는 sketch.js가 화면에 맞춰 정함) ── */
+      .search-wrap {
+        position: fixed;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+      }
+      .search {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        height: 46px;
+        background: #232327;
+        border: 1px solid #34343a;
+        border-radius: 23px;
+        padding: 0 8px 0 18px;
+      }
+      .search-icon {
+        color: #8d8a85;
+        font-size: 18px;
+      }
+      .search-input {
+        flex: 1;
+        min-width: 0;
+        border: none;
+        background: transparent;
+        color: #f3f1ec;
+        font-family: inherit;
+        font-size: 16px; /* 16px보다 작으면 아이폰이 화면을 확대함 */
+        outline: none;
+      }
+      .search-input::placeholder {
+        color: #77746f;
+      }
+      .year {
+        height: 32px;
+        border: none;
+        border-radius: 16px;
+        background: #34343a;
+        color: #f3f1ec;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 18px;
+        letter-spacing: 0.04em;
+        padding: 0 10px;
+        outline: none;
+        cursor: pointer;
+      }
+      /* 검색 결과 (아래로 펼쳐짐) */
+      .drop {
+        margin-top: 8px;
+        max-height: 60vh;
+        overflow-y: auto;
+        background: #111113;
+        color: #f3f1ec;
+        border-radius: 16px;
+        padding: 10px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+      }
+      .drop[hidden] {
+        display: none;
+      }
+      .drop-head {
+        margin: 6px 8px 8px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        color: #8d8a85;
+      }
+      .drop-item {
+        width: 100%;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 8px;
+        border: none;
+        border-radius: 10px;
+        background: transparent;
+        color: inherit;
+        text-align: left;
+        font: inherit;
+        cursor: pointer;
+      }
+      .drop-item:hover,
+      .drop-item:focus-visible {
+        background: #26262a;
+        outline: none;
+      }
+      .drop-item img,
+      .drop-item .ph {
+        width: 40px;
+        height: 58px;
+        object-fit: cover;
+        border-radius: 3px;
+        flex-shrink: 0;
+        background: #2a2a2e;
+      }
+      .drop-item b {
+        display: block;
+        font-weight: 700;
+        font-size: 15px;
+      }
+      .drop-item span {
+        display: block;
+        margin-top: 2px;
+        font-size: 12px;
+        color: #a9a6a0;
+      }
+      .drop-item .add {
+        margin-left: auto;
+        flex-shrink: 0;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 16px;
+        letter-spacing: 0.06em;
+        color: #111113;
+        background: #f3f1ec;
+        border-radius: 12px;
+        padding: 3px 10px 1px;
+      }
+      .drop-empty {
+        margin: 8px;
+        font-size: 13px;
+        color: #a9a6a0;
+      }
+
+      /* ── 가운데 뜨는 카드 (미리보기 · 감상 · 회차 메모) ── */
+      .dim {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        background: rgba(17, 17, 19, 0.6);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      .card {
+        width: 100%;
+        max-width: 560px;
+        max-height: 100%;
+        overflow-y: auto;
+        background: #111113;
+        color: #f3f1ec;
+        border-radius: 14px;
+        padding: 24px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        box-shadow: 0 30px 70px rgba(0, 0, 0, 0.45);
+        -webkit-user-select: text;
+        user-select: text;
+      }
+      .card > * {
+        flex-shrink: 0;
+      }
+      .card-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 18px;
+        letter-spacing: 0.08em;
+        color: #a9a6a0;
+      }
+      .x {
+        border: none;
+        background: transparent;
+        color: #f3f1ec;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 18px;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        padding: 4px 0 4px 10px;
+      }
+      .big {
+        margin: 0;
+        font-family: "Black Han Sans", sans-serif;
+        font-weight: 400;
+        font-size: 36px;
+        line-height: 1.1;
+      }
+      .ep {
+        margin: 0;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 72px;
+        line-height: 0.85;
+      }
+      .meta {
+        margin: 0;
+        font-size: 13px;
+        color: #a9a6a0;
+        line-height: 1.6;
+      }
+      .synopsis {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.65;
+        color: #d6d3cd;
+      }
+      .prev {
+        display: flex;
+        gap: 18px;
+      }
+      .prev img,
+      .prev .ph {
+        width: 132px;
+        height: 194px;
+        object-fit: cover;
+        border-radius: 4px;
+        flex-shrink: 0;
+        background: #2a2a2e;
+      }
+      .prev-text {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-width: 0;
+      }
+      .label {
+        margin: 0 0 -6px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 16px;
+        letter-spacing: 0.08em;
+        color: #a9a6a0;
+      }
+      .field,
+      .area,
+      .num {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1.5px solid #3a3a3f;
+        border-radius: 10px;
+        background: #1c1c1f;
+        color: #f3f1ec;
+        font-family: inherit;
+        font-size: 16px;
+        padding: 11px 12px;
+        outline: none;
+      }
+      .area {
+        min-height: 110px;
+        line-height: 1.6;
+        resize: none;
+      }
+      .num {
+        width: 5.5em;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 24px;
+        padding: 6px 12px 3px;
+      }
+      .field:focus,
+      .area:focus,
+      .num:focus {
+        border-color: #f3f1ec;
+      }
+      .field::placeholder,
+      .area::placeholder {
+        color: #6d6a65;
+      }
+      .nums {
+        display: flex;
+        gap: 22px;
+      }
+      /* 보는 중 / 다 봄 / 볼 것 · 별점 1~10 */
+      .seg,
+      .stars {
+        display: flex;
+        gap: 6px;
+      }
+      .seg button,
+      .stars button {
+        flex: 1;
+        min-height: 44px;
+        border: 1.5px solid #3a3a3f;
+        border-radius: 10px;
+        background: transparent;
+        color: #f3f1ec;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .stars button {
+        min-height: 40px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 20px;
+      }
+      .seg button.on,
+      .stars button.on {
+        background: #f3f1ec;
+        border-color: #f3f1ec;
+        color: #111113;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+      .grow {
+        flex: 1;
+      }
+      .btn,
+      .btn-main {
+        min-height: 48px;
+        padding: 0 20px;
+        border-radius: 24px;
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 20px;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+      }
+      .btn {
+        border: 1.5px solid #3a3a3f;
+        background: transparent;
+        color: #f3f1ec;
+      }
+      .btn-main {
+        border: none;
+        background: #f3f1ec;
+        color: #111113;
+      }
+      /* 모든 감상 목록 */
+      .quote {
+        border-left: 3px solid #f3f1ec;
+        padding: 4px 0 4px 14px;
+      }
+      .quote p {
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.6;
+      }
+      .quote span {
+        display: block;
+        margin-top: 4px;
+        font-size: 12px;
+        color: #a9a6a0;
+      }
+      /* 키워드 고르기 · 폴더 이름 추천 */
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .chips button {
+        border: 1.5px solid #3a3a3f;
+        background: transparent;
+        color: #f3f1ec;
+        border-radius: 16px;
+        padding: 6px 12px;
+        font-family: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+      .chips button.on {
+        background: #f3f1ec;
+        border-color: #f3f1ec;
+        color: #111113;
+        font-weight: 700;
+      }
+      /* 폴더 색 고르기 */
+      .swatches {
+        display: flex;
+        gap: 10px;
+      }
+      .swatches button {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 3px solid transparent;
+        cursor: pointer;
+      }
+      .swatches button.on {
+        border-color: #f3f1ec;
+      }
+      .btn-danger {
+        border: 1.5px solid #5a2a2a;
+        background: transparent;
+        color: #ff8a80;
+      }
+      /* 폴더에 티켓 넣기: 포스터로 고르기 */
+      .pick-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 10px;
+      }
+      .pick {
+        border: 2px solid transparent;
+        border-radius: 8px;
+        background: #1c1c1f;
+        color: #f3f1ec;
+        padding: 6px;
+        font-family: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        text-align: left;
+      }
+      .pick img,
+      .pick .ph {
+        display: block;
+        width: 100%;
+        aspect-ratio: 2 / 3;
+        object-fit: cover;
+        border-radius: 4px;
+        background: #2a2a2e;
+        margin-bottom: 6px;
+      }
+      .pick span {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pick.on {
+        border-color: #f3f1ec;
+        background: #2c2c31;
+      }
+      button:focus-visible {
+        outline: 2px solid #f3f1ec;
+        outline-offset: 2px;
       }
     </style>
-  </head>
-  <body>
-    <script>
-      // 터치 필수: Safari는 CSS만으로는 드래그 스크롤을 완전히 못 막아서 스크립트로 한 번 더 차단
-      document.addEventListener("touchmove", function (e) { e.preventDefault(); }, { passive: false });
-    </script>
+
+    <!-- p5는 인터넷에서 바로 불러옴 → 이 폴더(index.html + sketch.js)만 있으면 어디서든 열림 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
     <script src="sketch.js"></script>
+  </head>
+
+  <body>
+    <main></main>
   </body>
 </html>
