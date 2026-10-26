@@ -12,8 +12,8 @@
 //      큰 티켓 톡 / 옆으로 밀기 ... 뒤집기 (앞면 포스터 ↔ 뒷면 정보 · 평점 · 키워드)
 //      뒷면 회차 띠 위를 긋기 .... 회차별 재미 기록 (높게 그을수록 재밌음) · 꾹 = 그 화 메모
 //      뒷면 ↻ 다시 보기 .......... 지금 감상을 보관하고 새 회차(2회차 …)로
-//      벽의 티켓 꾹 → 끌어다 놓기 . 다른 티켓 위 = 둘을 이어서 폴더로
-//      벽의 티켓 지그재그 ........ 지우기 (잠깐 되돌리기 가능)
+//      (벽의 티켓을 꾹 눌러 다른 티켓과 잇는 기능은 뺌)
+//      (지그재그로 지우기는 뺌 · 크게 연 티켓 옆 '삭제'로 지움)
 //      상자 앞판 톡 ............. 그 자리에서 서랍이 열리고 그 해 티켓들이 펼쳐짐 (바깥 / Esc = 닫기)
 //      [감상] .................. 볼 때마다 남긴 한줄평 · 회차 메모를 한곳에 (다시 본 드라마는 회차끼리 나란히)
 //      [취향] .................. ♥한 드라마를 결 · 연도별로 쌓은 그래프 → "나는 대부분 ○○파" · 아래로 내리면 같은 결 추천
@@ -54,7 +54,7 @@ const STORAGE_KEY = "rewatch-ticket-v1";
 const SLOT = "final"; // 제출용 칸 (어느 컴퓨터든 처음 열면 맨 아래 STARTER 76장으로 시작 · 예전 v1·v2 저장과 안 섞임)
 
 // ★ 새로고침할 때마다 시작 화면 + 손가락 시연을 띄울지 (false = 처음 한 번만)
-const INTRO_EVERY = true;
+const INTRO_EVERY = true; // 새로고침할 때마다 시작 화면 · 시연을 다시 (false = 처음 한 번만)
 const CAT_KEY = "rewatch-ticket-catalog"; // 연도별 목록의 포스터 정보 (한 번 찾으면 기억)
 
 // 색 — 어두운 바탕 위 크림색 종이 티켓, 드라마마다 강조색 하나
@@ -373,14 +373,21 @@ let drawerBox = null; // 이번 프레임에 열린 상자 자리 { gp, bx, by }
 ========================================================= */
 // ▶ setup — 앱을 켤 때 한 번: 캔버스, 데이터, 검색창, 터치 연결, 정보 찾기
 // 오래된 사파리 등 roundRect가 없는 브라우저용 (없으면 그냥 네모로)
-if (typeof CanvasRenderingContext2D !== "undefined" && !CanvasRenderingContext2D.prototype.roundRect)
+if (
+  typeof CanvasRenderingContext2D !== "undefined" &&
+  !CanvasRenderingContext2D.prototype.roundRect
+)
   CanvasRenderingContext2D.prototype.roundRect = function (x, y, w, h) {
     this.rect(x, y, w, h);
   };
 // 한글 입력 중(글자 조합 중)에 버튼을 누르면, 사파리 등은 첫 클릭을 '글자 확정'에만 써서 버튼이 안 눌림
 //   → 조합 중에 커서가 버튼 위로 올라가면 미리 글자를 확정(blur)해 둠 → 저장 버튼이 한 번에 눌림
 let imeComposing = false;
-document.addEventListener("compositionstart", () => (imeComposing = true), true);
+document.addEventListener(
+  "compositionstart",
+  () => (imeComposing = true),
+  true,
+);
 document.addEventListener("compositionend", () => (imeComposing = false), true);
 document.addEventListener(
   "pointerover",
@@ -440,7 +447,10 @@ function draw() {
   L = { hits: [] };
   drawTop();
   if (ui.input) {
-    const ph = view === "reviews" ? "감상에서 찾기 · 제목 · 관람평 · 메모" : "제목 · 방송사 · 연도로 찾기";
+    const ph =
+      view === "reviews"
+        ? "감상에서 찾기 · 제목 · 관람평 · 메모"
+        : "제목 · 방송사 · 연도로 찾기";
     if (ui.input.placeholder !== ph) ui.input.placeholder = ph;
   }
   if (view === "reviews") drawReviews();
@@ -460,7 +470,9 @@ function draw() {
   if (helpOpen) drawHelp();
   else helpT0 = 0; // 다음에 열 때 처음부터 다시 움직이게
   pop();
-  if (ui.wrap) ui.wrap.style.visibility = helpOpen || tour || !demoSearch ? "hidden" : "visible"; // 사용법이 떠 있으면 검색창 숨김
+  if (ui.wrap)
+    ui.wrap.style.visibility =
+      helpOpen || tour || !demoSearch ? "hidden" : "visible"; // 사용법이 떠 있으면 검색창 숨김
 }
 
 function windowResized() {
@@ -807,7 +819,10 @@ function sampleDramas() {
             { length: eps },
             (_, i) =>
               Math.round(
-                Math.min(1, Math.max(0, rating / 10 - 0.2 + ((i * 37 + k * 11) % 7) / 20)) * 10,
+                Math.min(
+                  1,
+                  Math.max(0, rating / 10 - 0.2 + ((i * 37 + k * 11) % 7) / 20),
+                ) * 10,
               ) / 10,
           ),
           rating,
@@ -1068,10 +1083,16 @@ function initData() {
   if (slot !== "v1" && (!saved || saved.sample)) {
     // 다른 컴퓨터로 보낸 시연용: 같은 폴더의 seed.js(내 일지 내보내기 파일)가 있으면 그 티켓으로 시작
     // 순서: 보낸 파일의 SEED → 코드 맨 아래 STARTER(76장) → (둘 다 없을 때만) 이 브라우저 내 일지의 절반
-    const starter = typeof STARTER !== "undefined" && STARTER && STARTER.dramas ? STARTER : null;
-    const pre = (typeof window !== "undefined" && window.SEED && window.SEED.dramas) ? window.SEED : starter;
+    const starter =
+      typeof STARTER !== "undefined" && STARTER && STARTER.dramas
+        ? STARTER
+        : null;
+    const pre =
+      typeof window !== "undefined" && window.SEED && window.SEED.dramas
+        ? window.SEED
+        : starter;
     const half = pre ? JSON.parse(JSON.stringify(pre)) : halfOfMine();
-    if (half && pre === starter && sid) half.starter = sid; // 이 칸은 이 STARTER로 시작했다는 표시
+    if (half && pre && sid) half.starter = sid; // 이 칸은 이 STARTER(또는 공유받은 SEED)로 시작했다는 표시 → 새로고침해도 다시 안 채움
     if (half) {
       saved = half;
       data = half;
@@ -1278,14 +1299,13 @@ function fetchMissingInfo() {
   d.infoTried = true;
   tvSearch(d.en || d.title)
     .then((res) => {
-      const hit = res.find((r) => r.lang === "Korean") || res[0];
+      const hit = res.find((r) => r.lang === "Korean"); // 한국 드라마만 (엉뚱한 외국 드라마 포스터가 붙지 않게)
       if (hit) linkInfo(d, hit);
       saveData();
       setTimeout(fetchMissingInfo, 300);
     })
     .catch(() => (d.infoTried = false)); // 인터넷이 안 되면 다음에 다시
 }
-
 
 // ▶ linkInfo — 찾은 정보(포스터 · 연도 · 방송사 · 장르)를 드라마에 붙임
 function linkInfo(d, r) {
@@ -1441,33 +1461,80 @@ function drawLogo(x, y, w, h) {
 // 검색창 자리: 실제 화면에 그려진 검색 칸(.search)의 위치를 그대로 읽어서 (어긋나지 않게)
 const searchRect = () => {
   if (!ui.wrap) return null;
-  const el = (ui.input && ui.input.closest && ui.input.closest(".search")) || ui.wrap;
+  const el =
+    (ui.input && ui.input.closest && ui.input.closest(".search")) || ui.wrap;
   const r = el.getBoundingClientRect();
   if (!r.width || !r.height) return { x: 260, y: 22, w: 440, h: 44 };
-  return { x: (r.left - OX) / K + 4, y: (r.top - OY) / K + 4, w: r.width / K - 8, h: r.height / K - 8 }; // (불빛 테두리가 칸에 딱 맞게 살짝 안쪽으로)
+  return {
+    x: (r.left - OX) / K + 4,
+    y: (r.top - OY) / K + 4,
+    w: r.width / K - 8,
+    h: r.height / K - 8,
+  }; // (불빛 테두리가 칸에 딱 맞게 살짝 안쪽으로)
 };
 const TAB_DEMO = {
   ticket: [
     () => L.newBtn && { r: L.newBtn, g: "tap", t: "새 티켓 발권" },
-    () => L.boxes && L.boxes[0] && { r: L.boxes[0], g: "tap", t: "그 해 티켓 펼치기" },
-    () => (L.peek || L.ticket) && { r: L.peek || L.ticket, g: "tap", t: "톡 = 뒤집어서 관람평" },
+    () =>
+      L.boxes &&
+      L.boxes[0] && { r: L.boxes[0], g: "tap", t: "그 해 티켓 펼치기" },
+    () =>
+      (L.peek || L.ticket) && {
+        r: L.peek || L.ticket,
+        g: "tap",
+        t: "톡 = 뒤집어서 관람평",
+      },
   ],
   reviews: [
-    () => searchRect() && { r: searchRect(), g: "tap", t: "제목으로 찾기", search: true },
-    () => L.sortChips && L.sortChips[0] && { r: L.sortChips[0], g: "tap", t: "정렬 바꾸기" },
-    () => L.reviewRows && L.reviewRows[0] && { r: L.reviewRows[0], g: "tap", t: "크게 보기", open: L.reviewRows[0].d }, // 톡 하면 진짜 크게 보기 창까지
+    () =>
+      searchRect() && {
+        r: searchRect(),
+        g: "tap",
+        t: "제목으로 찾기",
+        search: true,
+      },
+    () =>
+      L.sortChips &&
+      L.sortChips[0] && { r: L.sortChips[0], g: "tap", t: "정렬 바꾸기" },
+    () =>
+      L.reviewRows &&
+      L.reviewRows[0] && {
+        r: L.reviewRows[0],
+        g: "tap",
+        t: "크게 보기",
+        open: L.reviewRows[0].d,
+      }, // 톡 하면 진짜 크게 보기 창까지
   ],
   taste: [
-    () => ({ r: { x: AREA.x, y: AREA.y + 44, w: AREA.w, h: 250 }, g: "none", t: "♥한 드라마 = 내 취향" }), // 위: 나의 취향 · 장르 막대
-    () => ({ r: { x: AREA.x, y: AREA.y + 262 + 60, w: AREA.w, h: AREA.h - 34 - TASTE_UP + 40 - 262 - 60 }, g: "none", t: "연도별로 쌓인 내 티켓" }), // 가운데: 연도 그래프
-    () => ({ r: { x: AREA.x, y: AREA.y + 44, w: AREA.w, h: AREA.h - 60 }, g: "swipe", t: "쓸어 올리면 추천" }),
+    () => ({
+      r: { x: AREA.x, y: AREA.y + 44, w: AREA.w, h: 250 },
+      g: "none",
+      t: "♥한 드라마 = 내 취향",
+    }), // 위: 나의 취향 · 장르 막대
+    () => ({
+      r: {
+        x: AREA.x,
+        y: AREA.y + 262 + 60,
+        w: AREA.w,
+        h: AREA.h - 34 - TASTE_UP + 40 - 262 - 60,
+      },
+      g: "none",
+      t: "연도별로 쌓인 내 티켓",
+    }), // 가운데: 연도 그래프
+    () => ({
+      r: { x: AREA.x, y: AREA.y + 44, w: AREA.w, h: AREA.h - 60 },
+      g: "swipe",
+      t: "쓸어 올리면 추천",
+    }),
   ],
   folders: [
     () => {
       const t = (L.tiles || []).find((q) => q.f.type === "new");
       return t && { r: t, g: "tap", t: "새 폴더" };
     },
-    () => L.tileDels && L.tileDels[0] && { r: L.tileDels[0], g: "tap", t: "폴더 지우기" },
+    () =>
+      L.tileDels &&
+      L.tileDels[0] && { r: L.tileDels[0], g: "tap", t: "폴더 지우기" },
     () => {
       const t = (L.tiles || []).find((q) => q.f.type !== "new");
       return t && { r: t, g: "tap", t: "폴더 열기" }; // 톡 하는 모습만 (진짜로 들어가진 않음)
@@ -1511,10 +1578,16 @@ function drawTabTip() {
   const local = millis() - tabTip.st0;
   const waiting = local >= HOLD && !(st.open || st.openFolder);
   const lt = Math.min(local, st.open || st.openFolder ? local : HOLD); // 이 단계 안에서 지난 시간
-  const acc = ACCENTS[VIEWS.findIndex(([k]) => k === tabTip.key) % ACCENTS.length];
+  const acc =
+    ACCENTS[VIEWS.findIndex(([k]) => k === tabTip.key) % ACCENTS.length];
   const ctx = drawingContext;
   const pad = 8;
-  const R = { x: st.r.x - pad, y: st.r.y - pad, w: st.r.w + pad * 2, h: st.r.h + pad * 2 };
+  const R = {
+    x: st.r.x - pad,
+    y: st.r.y - pad,
+    w: st.r.w + pad * 2,
+    h: st.r.h + pad * 2,
+  };
   demoSearch = !!st.search;
 
   // 1) 어둡게 + 그 자리만 구멍 (불 켜진 것처럼)
@@ -1606,7 +1679,8 @@ function drawTabTip() {
     folderSel = st.openFolder; // 폴더 안 화면까지 열어 보여 주고 → 잠깐 뒤 모든 폴더로 돌아옴
     const key = st.openFolder;
     setTimeout(() => {
-      if (view === "folders" && folderSel === key && !panel && !g) folderSel = null;
+      if (view === "folders" && folderSel === key && !panel && !g)
+        folderSel = null;
     }, 3500);
     return;
   }
@@ -1621,16 +1695,46 @@ function drawTabTip() {
   ctx.globalAlpha = la;
   fill(acc);
   rect(lx, ly + 4 * (1 - la), lw, 40, 20);
-  say(lab, lx + lw / 2, ly + 26 + 4 * (1 - la), 16, C.ink, CENTER, BASELINE, BODY, 255, true);
+  say(
+    lab,
+    lx + lw / 2,
+    ly + 26 + 4 * (1 - la),
+    16,
+    C.ink,
+    CENTER,
+    BASELINE,
+    BODY,
+    255,
+    true,
+  );
   ctx.restore();
   // 이름표 옆: 몇 번째인지 + '톡 하면 다음' (화면 아래 그래프 · 축 글자를 안 가리게 이름표 바로 옆에)
-  const hint = `${si + 1}/${steps.length}` + (waiting ? (si < steps.length - 1 ? "   톡 하면 다음 ›" : "   톡 하면 끝") : "");
+  const hint =
+    `${si + 1}/${steps.length}` +
+    (waiting
+      ? si < steps.length - 1
+        ? "   톡 하면 다음 ›"
+        : "   톡 하면 끝"
+      : "");
   const hw = textWidthOf(hint, 13, BODY, true);
   const right = lx + lw + 12 + hw < W0 - 20;
-  const blink = waiting ? 150 + 105 * Math.sin(millis() * HINT_SPEED * 1.5) : 160;
+  const blink = waiting
+    ? 150 + 105 * Math.sin(millis() * HINT_SPEED * 1.5)
+    : 160;
   ctx.save();
   ctx.globalAlpha = la;
-  say(hint, right ? lx + lw + 12 : lx - 12, ly + 25, 13, C.paper, right ? LEFT : RIGHT, BASELINE, BODY, blink, true);
+  say(
+    hint,
+    right ? lx + lw + 12 : lx - 12,
+    ly + 25,
+    13,
+    C.paper,
+    right ? LEFT : RIGHT,
+    BASELINE,
+    BODY,
+    blink,
+    true,
+  );
   ctx.restore();
   // 건너뛰기 (오른쪽 위 · ? 아래)
   const sk = "건너뛰기  ›";
@@ -1806,32 +1910,33 @@ function drawWall() {
         dim: carrying && g.d === d,
         hot: carrying && g.target && g.target.d === d,
       });
-      // 누르기 · 꾹 들기 · 지그재그 지우기는 상자 속 티켓과 똑같이 동작
+      // 누르기는 상자 속 티켓과 똑같이 동작
       L.minis.push({ d, x: cx, y: cy, w: GW, h: GH, heart: hb });
     });
-  else groups.forEach((gp, bi) => {
-    const row = Math.floor(bi / 3);
-    const bx = S.x + (bi % 3) * (BW + BGAP);
-    const by = top + 44 + row * ROWH - rackScroll; // 상자 맨 위 (티켓 보이는 곳 시작)
-    const faceY = by + TOPA;
-    // 선반 (줄의 첫 상자에서 한 번)
-    if (bi % 3 === 0) {
-      fill(40, 40, 44);
-      rect(S.x - 6, faceY + FACE, 3 * BW + 2 * BGAP + 12, 12);
-      fill(0, 0, 0, 90);
-      rect(S.x - 6, faceY + FACE + 12, 3 * BW + 2 * BGAP + 12, 6);
-    }
-    if (faceY + FACE < top - 16 || by > H0) return;
-    drawBox(gp, bx, by, {
-      peek,
-      carrying,
-      sp,
-      step: Math.min(8, 90 / Math.max(1, gp.ds.length)),
-      lift: 56,
+  else
+    groups.forEach((gp, bi) => {
+      const row = Math.floor(bi / 3);
+      const bx = S.x + (bi % 3) * (BW + BGAP);
+      const by = top + 44 + row * ROWH - rackScroll; // 상자 맨 위 (티켓 보이는 곳 시작)
+      const faceY = by + TOPA;
+      // 선반 (줄의 첫 상자에서 한 번)
+      if (bi % 3 === 0) {
+        fill(40, 40, 44);
+        rect(S.x - 6, faceY + FACE, 3 * BW + 2 * BGAP + 12, 12);
+        fill(0, 0, 0, 90);
+        rect(S.x - 6, faceY + FACE + 12, 3 * BW + 2 * BGAP + 12, 6);
+      }
+      if (faceY + FACE < top - 16 || by > H0) return;
+      drawBox(gp, bx, by, {
+        peek,
+        carrying,
+        sp,
+        step: Math.min(8, 90 / Math.max(1, gp.ds.length)),
+        lift: 56,
+      });
+      L.boxes.push({ x: bx, y: faceY, w: BW, h: FACE, gp });
+      if (gp.yr === drawerYr) drawerBox = { gp, bx, by };
     });
-    L.boxes.push({ x: bx, y: faceY, w: BW, h: FACE, gp });
-    if (gp.yr === drawerYr) drawerBox = { gp, bx, by };
-  });
   ctx.restore();
   // 오른쪽: 올라온 티켓의 앞면 (크게 연 티켓과 같은 자리 · 같은 모양) · 톡 = 그 자리에서 바로 뒷면
   L.peek = null;
@@ -1847,11 +1952,20 @@ function drawWall() {
     drawTicketFront(peek, accentOf(peek), false);
     pop();
     const hb = { x: TK.x + TK.w - 70, y: TK.y + TK.ph + 18, w: 52, h: 52 };
-    L.peek = { d: peek, x: TK.x, y: TK.y - 30, w: TK.w, h: TK.h + 30, heart: hb };
+    L.peek = {
+      d: peek,
+      x: TK.x,
+      y: TK.y - 30,
+      w: TK.w,
+      h: TK.h + 30,
+      heart: hb,
+    };
     // 뒤집기 안내 (크게 연 티켓과 같은 글자 · 처음 보이는 티켓에도 바로)
     const a = 140 + 110 * Math.sin(millis() * HINT_SPEED);
     say(
-      peek.review ? "↻  눌러서 뒤집으면 관람평" : "↻  눌러서 뒤집으면 관람평 쓰기",
+      peek.review
+        ? "↻  눌러서 뒤집으면 관람평"
+        : "↻  눌러서 뒤집으면 관람평 쓰기",
       TK.x + TK.w / 2,
       TK.y - 14 + 3 * Math.sin(millis() * HINT_SPEED),
       13,
@@ -2009,10 +2123,7 @@ function drawBox(gp, bx, by, o) {
         o.sp); // 서랍이 열린 상자는 올라와 있던 티켓도 제자리로
     const inset = 8 + Math.min(i, 14) * 1.1;
     const jit = ((i * 37 + n * 11) % 7) - 3; // 살짝 삐뚤게 꽂힘
-    const shake =
-      g && g.where === "rack" && g.d === d && !g.mode
-        ? Math.min(g.turns, 5)
-        : 0;
+    const shake = 0; // (지그재그 지우기를 빼서 흔들림도 없음)
     const tx =
       bx + inset + jit * 0.6 + (shake ? Math.sin(millis() * 0.07) * 3 : 0);
     const tw = BW - inset * 2;
@@ -2210,7 +2321,8 @@ function drawOpen() {
   const d = selected();
   if (!d) return (opened = false);
   drawBigTicket(d);
-  if (hoverEp && hoverEp.id === d.id && flipT > 0.9 && !g) drawEpTip(d, hoverEp.i);
+  if (hoverEp && hoverEp.id === d.id && flipT > 0.9 && !g)
+    drawEpTip(d, hoverEp.i);
   const dx = TK.x - 34;
   say("✕", dx, TK.y + 24, 24, C.dim, CENTER, CENTER, LAB);
   L.closeBtn = { x: dx - 22, y: TK.y, w: 44, h: 48 };
@@ -2261,7 +2373,9 @@ function drawEpTip(d, i) {
   const memo = d.notes[i];
   const W = 230;
   const pad = 14;
-  const lines = memo ? wrapStr(memo.replace(/\n/g, " "), W - pad * 2, 14, BODY).slice(0, 4) : [];
+  const lines = memo
+    ? wrapStr(memo.replace(/\n/g, " "), W - pad * 2, 14, BODY).slice(0, 4)
+    : [];
   const H = 46 + (memo ? lines.length * 21 : 20) + 6;
   const x = constrain(cx - W / 2, 20, W0 - W - 20);
   const y = R.y - H - 16;
@@ -2271,9 +2385,20 @@ function drawEpTip(d, i) {
   fill(C.ink);
   rect(x, y, W, H, 12);
   triangle(cx - 8, y + H, cx + 8, y + H, cx, y + H + 10); // 꼬리: 그 화 막대를 가리킴
-  say(`EP ${String(i + 1).padStart(2, "0")}`, x + pad, y + 30, 22, C.paper, LEFT, BASELINE, LAB);
   say(
-    v !== null && v !== undefined ? `재미 ${Math.round(v * 10)}/10` : "아직 평 없음",
+    `EP ${String(i + 1).padStart(2, "0")}`,
+    x + pad,
+    y + 30,
+    22,
+    C.paper,
+    LEFT,
+    BASELINE,
+    LAB,
+  );
+  say(
+    v !== null && v !== undefined
+      ? `재미 ${Math.round(v * 10)}/10`
+      : "아직 평 없음",
     x + W - pad,
     y + 28,
     13,
@@ -2285,12 +2410,32 @@ function drawEpTip(d, i) {
   let ly = y + 56;
   if (memo)
     lines.forEach((ln, k) => {
-      const last = k === lines.length - 1 && wrapStr(memo, W - pad * 2, 14, BODY).length > 4;
-      say(last ? fitStr(ln + "……", W - pad * 2, 14, BODY) : ln, x + pad, ly, 14, C.paper, LEFT, BASELINE, BODY);
+      const last =
+        k === lines.length - 1 &&
+        wrapStr(memo, W - pad * 2, 14, BODY).length > 4;
+      say(
+        last ? fitStr(ln + "……", W - pad * 2, 14, BODY) : ln,
+        x + pad,
+        ly,
+        14,
+        C.paper,
+        LEFT,
+        BASELINE,
+        BODY,
+      );
       ly += 21;
     });
   else {
-    say("메모 없음 · 꾹 누르면 이 화 메모 쓰기", x + pad, ly, 12, C.dim, LEFT, BASELINE, BODY);
+    say(
+      "메모 없음 · 꾹 누르면 이 화 메모 쓰기",
+      x + pad,
+      ly,
+      12,
+      C.dim,
+      LEFT,
+      BASELINE,
+      BODY,
+    );
     ly += 20;
   }
 }
@@ -2327,7 +2472,17 @@ function drawBigTicket(d) {
       ? "↻  눌러서 뒤집으면 관람평"
       : "↻  눌러서 뒤집으면 관람평 쓰기";
   const a = 140 + 110 * Math.sin(millis() * HINT_SPEED);
-  say(hint, T.x + T.w / 2, T.y - 14 + 3 * Math.sin(millis() * HINT_SPEED), 13, C.paper, CENTER, BASELINE, BODY, back ? 150 : a);
+  say(
+    hint,
+    T.x + T.w / 2,
+    T.y - 14 + 3 * Math.sin(millis() * HINT_SPEED),
+    13,
+    C.paper,
+    CENTER,
+    BASELINE,
+    BODY,
+    back ? 150 : a,
+  );
 }
 
 // ▶ drawTicketFront — 앞면: 포스터 + 아래 쪽지(제목 · 연도 · 방송사 · ♥ · 바코드)
@@ -2364,7 +2519,9 @@ function drawTicketFront(d, acc, ready) {
     LAB,
   );
   say(
-    [d.year, d.network, `${d.eps}부작`, kindOf(d)].filter(Boolean).join("  ·  "),
+    [d.year, d.network, `${d.eps}부작`, kindOf(d)]
+      .filter(Boolean)
+      .join("  ·  "),
     22,
     ph + 98,
     12,
@@ -2379,9 +2536,13 @@ function drawTicketFront(d, acc, ready) {
   heart(w - 44, ph + 46, 20, d.liked, d.liked ? C.paper : C.ink);
   const ghost = pastAvg(d); // 지난 회차 그래프 (이번 회차에 평이 없는 화는 흐리게 대신 보여 줌)
   // 앞면: 지금 회차 막대 + 지난 회차는 점선 (메모 점은 뒷면에만)
-  scoreBarcode(d, 22, T.h - 62, w - 44 - 140, 34, acc, { prev: ghost, noDots: true });
+  scoreBarcode(d, 22, T.h - 62, w - 44 - 140, 34, acc, {
+    prev: ghost,
+    noDots: true,
+  });
   say(
-    `EP 01 — ${String(d.eps).padStart(2, "0")}` + (ghost ? `  ·  점선 = ${ghost.label}` : ""),
+    `EP 01 — ${String(d.eps).padStart(2, "0")}` +
+      (ghost ? `  ·  점선 = ${ghost.label}` : ""),
     22,
     T.h - 14,
     10,
@@ -2442,7 +2603,16 @@ function drawTicketBack(d, acc, ready) {
   const editing = inline && inline.o.titleOf === d; // 제목을 고치는 중이면 그 자리는 글자 칸이 대신
   if (editing);
   else if (d.title)
-    say(fitStr(d.title, w - 40, ts, DISP), 20, 82, ts, C.ink, LEFT, BASELINE, DISP);
+    say(
+      fitStr(d.title, w - 40, ts, DISP),
+      20,
+      82,
+      ts,
+      C.ink,
+      LEFT,
+      BASELINE,
+      DISP,
+    );
   else say("제목을 써 주세요", 20, 80, 22, C.ink, LEFT, BASELINE, DISP, 70);
   if (ready)
     L.hits.push({ act: "title", ...ab({ x: 10, y: 50, w: w - 20, h: 42 }) });
@@ -2466,7 +2636,18 @@ function drawTicketBack(d, acc, ready) {
   infos.forEach(([v, act], i) => {
     const tint = act === "kind" || act === "status";
     const tw = textWidthOf(v, 12, BODY, tint);
-    say(v, ix, iy, 12, tint ? acc : C.ink, LEFT, BASELINE, BODY, tint ? 255 : 170, tint);
+    say(
+      v,
+      ix,
+      iy,
+      12,
+      tint ? acc : C.ink,
+      LEFT,
+      BASELINE,
+      BODY,
+      tint ? 255 : 170,
+      tint,
+    );
     if (ready)
       L.hits.push(
         tint
@@ -2475,7 +2656,12 @@ function drawTicketBack(d, acc, ready) {
               act: "field",
               key: act,
               ...ab({ x: ix - 3, y: iy - 18, w: tw + 6, h: 26 }),
-              box: ab({ x: ix - 6, y: iy - 18, w: Math.max(70, tw + 20), h: 26 }),
+              box: ab({
+                x: ix - 6,
+                y: iy - 18,
+                w: Math.max(70, tw + 20),
+                h: 26,
+              }),
             },
       );
     ix += tw;
@@ -2488,7 +2674,17 @@ function drawTicketBack(d, acc, ready) {
   // 전체 평점 (이 드라마 전체에 대한 내 점수) — 위쪽에 크게
   const r = d.rating;
   say("MY RATING", 20, 134, 12, C.ink, LEFT, BASELINE, LAB, 120);
-  say(r ? String(r) : "?", 18, 184, 52, C.ink, LEFT, BASELINE, LAB, r ? 255 : 60);
+  say(
+    r ? String(r) : "?",
+    18,
+    184,
+    52,
+    C.ink,
+    LEFT,
+    BASELINE,
+    LAB,
+    r ? 255 : 60,
+  );
   say(
     "/10",
     22 + textWidthOf(r ? String(r) : "?", 52, LAB),
@@ -2515,9 +2711,30 @@ function drawTicketBack(d, acc, ready) {
       });
   const prev = prevWatch(d);
   if (prev && prev.rating)
-    say(`${prev.label} ★${prev.rating}`, w - 20, 190, 12, C.ink, RIGHT, BASELINE, BODY, 130);
+    say(
+      `${prev.label} ★${prev.rating}`,
+      w - 20,
+      190,
+      12,
+      C.ink,
+      RIGHT,
+      BASELINE,
+      BODY,
+      130,
+    );
   else if (!r)
-    say("별을 눌러 평점", w - 20, 190, 12, acc, RIGHT, BASELINE, BODY, 255, true);
+    say(
+      "별을 눌러 평점",
+      w - 20,
+      190,
+      12,
+      acc,
+      RIGHT,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
   stroke(23, 23, 26, 40);
   strokeWeight(1);
   line(20, 202, w - 20, 202);
@@ -2533,19 +2750,13 @@ function drawTicketBack(d, acc, ready) {
     strokeWeight(1);
     line(dx0, 228, dx0 + textWidthOf("지우기", 11, BODY), 228);
     noStroke();
-    if (ready) L.hits.push({ act: "delrev", ...ab({ x: dx0 - 6, y: 208, w: 44, h: 26 }) });
+    if (ready)
+      L.hits.push({
+        act: "delrev",
+        ...ab({ x: dx0 - 6, y: 208, w: 44, h: 26 }),
+      });
   }
-  say(
-    d.watchLabel,
-    w - 20,
-    226,
-    12,
-    C.ink,
-    RIGHT,
-    BASELINE,
-    LAB,
-    120,
-  );
+  say(d.watchLabel, w - 20, 226, 12, C.ink, RIGHT, BASELINE, LAB, 120);
   const PX = 14; // 줄 노트 종이
   const PY = 236;
   const PW = w - 28;
@@ -2555,34 +2766,73 @@ function drawTicketBack(d, acc, ready) {
   rect(PX, PY, PW, PH, 10);
   stroke(220, 211, 194);
   strokeWeight(1);
-  for (let ly = PY + LH + 6; ly < PY + PH - 4; ly += LH) line(PX + 10, ly, PX + PW - 10, ly);
+  for (let ly = PY + LH + 6; ly < PY + PH - 4; ly += LH)
+    line(PX + 10, ly, PX + PW - 10, ly);
   noStroke();
-  const before = [...d.history].reverse().find((h) => h.review) || (d.history.length ? d.history[d.history.length - 1] : null); // 지난 회차 관람평 (없어도 줄은 보여서 거기서 쓰기)
+  const before =
+    [...d.history].reverse().find((h) => h.review) ||
+    (d.history.length ? d.history[d.history.length - 1] : null); // 지난 회차 관람평 (없어도 줄은 보여서 거기서 쓰기)
   const maxLines = before ? 4 : 5;
   if (d.review) {
     let lines = [];
     d.review
       .split("\n")
       .forEach((para, j) =>
-        wrapStr(j === 0 ? `“${para}` : para, PW - 24, 15, BODY).forEach((ln) => lines.push(ln)),
+        wrapStr(j === 0 ? `“${para}` : para, PW - 24, 15, BODY).forEach((ln) =>
+          lines.push(ln),
+        ),
       );
     if (lines.length > maxLines) {
       lines = lines.slice(0, maxLines);
-      lines[maxLines - 1] = fitStr(lines[maxLines - 1] + "……", PW - 24, 15, BODY);
+      lines[maxLines - 1] = fitStr(
+        lines[maxLines - 1] + "……",
+        PW - 24,
+        15,
+        BODY,
+      );
     } else lines[lines.length - 1] += "”";
-    lines.forEach((ln, i) =>
-      say(ln, PX + 12, PY + 24 + i * LH, 15, C.ink, LEFT, BASELINE, BODY), // 쓴 그대로 (모든 줄 같은 굵기)
+    lines.forEach(
+      (ln, i) =>
+        say(ln, PX + 12, PY + 24 + i * LH, 15, C.ink, LEFT, BASELINE, BODY), // 쓴 그대로 (모든 줄 같은 굵기)
     );
   } else {
-    say("이 드라마는 어땠나요?", PX + 12, PY + 24, 14, C.ink, LEFT, BASELINE, BODY, 90); // 빈 칸: 조용한 안내 한 줄
+    say(
+      "이 드라마는 어땠나요?",
+      PX + 12,
+      PY + 24,
+      14,
+      C.ink,
+      LEFT,
+      BASELINE,
+      BODY,
+      90,
+    ); // 빈 칸: 조용한 안내 한 줄
   }
   if (before) {
     // 지난 회차 관람평 한 줄 + 오른쪽 '보기 · 고치기 ›' (톡 = 모든 회차 창에서 회차마다 고치기)
     const more = "보기 · 고치기 ›";
     const mw = textWidthOf(more, 11, BODY, true);
-    say(more, PX + PW - 12, PY + PH - 12, 11, acc, RIGHT, BASELINE, BODY, 255, true);
     say(
-      fitStr(before.review ? `${before.label}  “${before.review.replace(/\n/g, " ")}”` : `${before.label}  관람평 없음`, PW - 24 - mw - 10, 12, BODY),
+      more,
+      PX + PW - 12,
+      PY + PH - 12,
+      11,
+      acc,
+      RIGHT,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
+    say(
+      fitStr(
+        before.review
+          ? `${before.label}  “${before.review.replace(/\n/g, " ")}”`
+          : `${before.label}  관람평 없음`,
+        PW - 24 - mw - 10,
+        12,
+        BODY,
+      ),
       PX + 12,
       PY + PH - 12,
       12,
@@ -2593,7 +2843,10 @@ function drawTicketBack(d, acc, ready) {
       120,
     );
     if (ready)
-      L.hits.push({ act: "all", ...ab({ x: PX, y: PY + PH - 28, w: PW, h: 28 }) }); // 지난 관람평 톡 = 모든 회차 감상
+      L.hits.push({
+        act: "all",
+        ...ab({ x: PX, y: PY + PH - 28, w: PW, h: 28 }),
+      }); // 지난 관람평 톡 = 모든 회차 감상
   }
   if (ready)
     L.hits.push({
@@ -2616,13 +2869,22 @@ function drawTicketBack(d, acc, ready) {
   for (const i of noteIdx) {
     const room = right - nx;
     if (room < 70) break;
-    const t = fitStr(`${i + 1}화 ${d.notes[i]}`, Math.min(room, 180) - 20, 12, BODY);
+    const t = fitStr(
+      `${i + 1}화 ${d.notes[i]}`,
+      Math.min(room, 180) - 20,
+      12,
+      BODY,
+    );
     const tw = textWidthOf(t, 12, BODY) + 20;
     fill(lerpColor(color(acc), color(C.paper), 0.82));
     rect(nx, my - 18, tw, 26, 13);
     say(t, nx + 10, my - 4, 12, C.ink, LEFT, CENTER, BODY, 255);
     if (ready)
-      L.hits.push({ act: "note", i, ...ab({ x: nx, y: my - 20, w: tw, h: 30 }) });
+      L.hits.push({
+        act: "note",
+        i,
+        ...ab({ x: nx, y: my - 20, w: tw, h: 30 }),
+      });
     nx += tw + 6;
     shown++;
   }
@@ -2637,13 +2899,43 @@ function drawTicketBack(d, acc, ready) {
     rect(w - 20 - plusW, my - 18, plusW, 26, 13);
     drawingContext.setLineDash([]);
     noStroke();
-    say("+", w - 20 - plusW / 2, my - 4, 15, acc, CENTER, CENTER, BODY, 255, true);
+    say(
+      "+",
+      w - 20 - plusW / 2,
+      my - 4,
+      15,
+      acc,
+      CENTER,
+      CENTER,
+      BODY,
+      255,
+      true,
+    );
     if (ready)
-      L.hits.push({ act: "note", i: nextEp, ...ab({ x: w - 20 - plusW - 4, y: my - 20, w: plusW + 8, h: 30 }) });
+      L.hits.push({
+        act: "note",
+        i: nextEp,
+        ...ab({ x: w - 20 - plusW - 4, y: my - 20, w: plusW + 8, h: 30 }),
+      });
   } else {
-    say(`+ ${nextEp + 1}화 메모 쓰기 · 띠를 꾹 = 그 화에`, nx, my, 12, acc, LEFT, BASELINE, BODY, 255, true);
+    say(
+      `+ ${nextEp + 1}화 메모 쓰기 · 띠를 꾹 = 그 화에`,
+      nx,
+      my,
+      12,
+      acc,
+      LEFT,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
     if (ready)
-      L.hits.push({ act: "note", i: nextEp, ...ab({ x: nx - 4, y: my - 20, w: w - 20 - nx, h: 30 }) });
+      L.hits.push({
+        act: "note",
+        i: nextEp,
+        ...ab({ x: nx - 4, y: my - 20, w: w - 20 - nx, h: 30 }),
+      });
   }
   perforation(18, ph, w - 36);
 
@@ -2765,38 +3057,133 @@ function normTitle(t) {
 //   로코 · 멜로 · 첫사랑 · 청춘 · 학원 · 직장 · 힐링 · 위로 · 가족 · 레트로 · 타임슬립 · 판타지 · 귀신 · 사극 · 궁중 · 정치
 //   재벌 · 계약 · 군인 · 의사 · 법정 · 수사 · 복수 · 웹툰
 const MOOD = {
-  "나의 아저씨": "위로 직장 힐링", "눈물의 여왕": "재벌 멜로 로코", "정년이": "청춘 레트로", "선재 업고 튀어": "타임슬립 첫사랑 청춘 로코",
-  "폭싹 속았수다": "가족 레트로 멜로 위로", "무빙": "판타지 가족 청춘", "비밀의 숲": "수사 법정", "미스터 션샤인": "사극 멜로",
-  "응답하라 1988": "레트로 가족 첫사랑 청춘", "도깨비": "판타지 귀신 멜로", "슬기로운 감빵생활": "위로 힐링", "사랑의 불시착": "군인 재벌 로코",
-  "동백꽃 필 무렵": "힐링 수사 로코 위로", "슬기로운 의사생활": "의사 힐링 위로", "그 해 우리는": "첫사랑 청춘 힐링", "스물다섯 스물하나": "청춘 레트로 첫사랑",
-  "나의 해방일지": "위로 힐링 멜로", "달의 연인": "사극 타임슬립 멜로 궁중", "악의 마음을 읽는 자들": "수사", "100일의 거짓말": "로코 계약",
-  "엄마친구아들": "로코 첫사랑 힐링", "우리들의 블루스": "힐링 위로 가족", "프로듀사": "직장 로코", "오 나의 귀신님": "귀신 로코",
-  "육룡이 나르샤": "사극 정치", "시크릿 가든": "판타지 재벌 로코", "장난스런 키스": "학원 로코 첫사랑", "성균관 스캔들": "사극 청춘 로코",
-  "김비서가 왜 그럴까": "직장 재벌 로코", "뷰티 인사이드": "판타지 로코", "라이브": "직장 수사 위로", "더 글로리": "복수",
-  "구미호뎐": "귀신 판타지", "마스크걸": "복수 수사", "킹더랜드": "재벌 직장 로코", "경이로운 소문": "귀신 판타지",
-  "악귀": "귀신 수사", "퀸메이커": "정치 직장", "연인": "사극 멜로", "일타 스캔들": "로코 직장",
-  "나쁜 엄마": "가족 위로 복수", "수상한 파트너": "법정 로코", "사랑의 온도": "멜로 직장", "로봇이 아니야": "로코 판타지",
-  "또 오해영": "로코 멜로", "더블유": "판타지 웹툰 멜로", "W": "판타지 웹툰 멜로", "태양의 후예": "군인 의사 로코",
-  "구르미 그린 달빛": "사극 궁중 청춘 로코", "낭만닥터 김사부": "의사", "질투의 화신": "직장 로코", "푸른 바다의 전설": "판타지 로코",
-  "나의 완벽한 비서": "직장 로코", "원경": "사극 정치 궁중", "언젠가는 슬기로운 전공의생활": "의사 청춘", "폭군의 셰프": "사극 타임슬립 로코 궁중",
-  "뿌리깊은 나무": "사극 수사 정치", "드림하이": "학원 청춘", "내 남편과 결혼해줘": "타임슬립 복수 직장", "굿파트너": "법정",
-  "유미의 세포들": "웹툰 로코 직장", "응답하라 1997": "레트로 첫사랑 학원", "미지의 서울": "위로 힐링 가족", "멋진 신세계": "타임슬립 로코",
-  "이 사랑 통역 되나요?": "로코 직장", "환혼": "판타지 사극 청춘", "알고있지만,": "청춘 멜로", "어쩌다 발견한 하루": "웹툰 학원 판타지",
-  "아는 와이프": "타임슬립 로코 가족", "황후의 품격": "궁중 복수", "알함브라 궁전의 추억": "판타지 수사", "힘쎈여자 도봉순": "판타지 로코",
-  "쌈 마이웨이": "청춘 로코", "SKY 캐슬": "가족 학원", "킬미, 힐미": "로코 위로", "하이에나": "법정 로코",
-  "그녀는 예뻤다": "직장 첫사랑 로코", "시그널": "수사 판타지", "역도요정 김복주": "청춘 학원 로코 첫사랑", "이번 생은 처음이라": "계약 로코 위로",
-  "당신이 잠든 사이에": "판타지 수사", "백일의 낭군님": "사극 로코", "호텔 델루나": "귀신 판타지 멜로", "스토브리그": "직장",
-  "킹덤": "사극 정치", "멜로가 체질": "직장 위로 로코", "이태원 클라쓰": "복수 청춘", "사이코지만 괜찮아": "위로 멜로",
-  "부부의 세계": "복수 가족", "스타트업": "직장 청춘 첫사랑", "스위트홈": "판타지", "빈센조": "복수 법정",
-  "갯마을 차차차": "힐링 로코", "D.P.": "군인", "이상한 변호사 우영우": "법정 위로", "재벌집 막내아들": "타임슬립 재벌 복수",
-  "사내맞선": "계약 직장 로코", "닥터 차정숙": "의사 가족", "정신병동에도 아침이 와요": "의사 위로", "지금 거신 전화는": "계약 멜로 수사",
-  "중증외상센터": "의사", "내 이름은 김삼순": "로코 위로", "커피프린스 1호점": "로코 청춘", "하얀거탑": "의사 정치",
-  "해를 품은 달": "사극 궁중 멜로", "별에서 온 그대": "판타지 로코", "응답하라 1994": "레트로 첫사랑 청춘", "굿 닥터": "의사 위로",
-  "괜찮아, 사랑이야": "위로 멜로", "미생": "직장 위로", "디어 마이 프렌즈": "가족 위로", "보이스": "수사",
-  "고백부부": "타임슬립 가족", "런 온": "로코 청춘", "여신강림": "학원 웹툰 로코", "철인왕후": "사극 궁중 로코 판타지",
-  "옷소매 붉은 끝동": "사극 궁중 멜로", "나빌레라": "위로 가족", "모범택시": "복수", "괴물": "수사",
-  "마우스": "수사", "술꾼도시여자들": "위로 직장", "사랑의 이해": "직장 멜로", "기상청 사람들": "직장 로코",
-  "슈룹": "사극 가족 궁중", "웰컴투 삼달리": "힐링 로코 첫사랑", "오징어 게임": "복수",
+  "나의 아저씨": "위로 직장 힐링",
+  "눈물의 여왕": "재벌 멜로 로코",
+  정년이: "청춘 레트로",
+  "선재 업고 튀어": "타임슬립 첫사랑 청춘 로코",
+  "폭싹 속았수다": "가족 레트로 멜로 위로",
+  무빙: "판타지 가족 청춘",
+  "비밀의 숲": "수사 법정",
+  "미스터 션샤인": "사극 멜로",
+  "응답하라 1988": "레트로 가족 첫사랑 청춘",
+  도깨비: "판타지 귀신 멜로",
+  "슬기로운 감빵생활": "위로 힐링",
+  "사랑의 불시착": "군인 재벌 로코",
+  "동백꽃 필 무렵": "힐링 수사 로코 위로",
+  "슬기로운 의사생활": "의사 힐링 위로",
+  "그 해 우리는": "첫사랑 청춘 힐링",
+  "스물다섯 스물하나": "청춘 레트로 첫사랑",
+  "나의 해방일지": "위로 힐링 멜로",
+  "달의 연인": "사극 타임슬립 멜로 궁중",
+  "악의 마음을 읽는 자들": "수사",
+  "100일의 거짓말": "로코 계약",
+  엄마친구아들: "로코 첫사랑 힐링",
+  "우리들의 블루스": "힐링 위로 가족",
+  프로듀사: "직장 로코",
+  "오 나의 귀신님": "귀신 로코",
+  "육룡이 나르샤": "사극 정치",
+  "시크릿 가든": "판타지 재벌 로코",
+  "장난스런 키스": "학원 로코 첫사랑",
+  "성균관 스캔들": "사극 청춘 로코",
+  "김비서가 왜 그럴까": "직장 재벌 로코",
+  "뷰티 인사이드": "판타지 로코",
+  라이브: "직장 수사 위로",
+  "더 글로리": "복수",
+  구미호뎐: "귀신 판타지",
+  마스크걸: "복수 수사",
+  킹더랜드: "재벌 직장 로코",
+  "경이로운 소문": "귀신 판타지",
+  악귀: "귀신 수사",
+  퀸메이커: "정치 직장",
+  연인: "사극 멜로",
+  "일타 스캔들": "로코 직장",
+  "나쁜 엄마": "가족 위로 복수",
+  "수상한 파트너": "법정 로코",
+  "사랑의 온도": "멜로 직장",
+  "로봇이 아니야": "로코 판타지",
+  "또 오해영": "로코 멜로",
+  더블유: "판타지 웹툰 멜로",
+  W: "판타지 웹툰 멜로",
+  "태양의 후예": "군인 의사 로코",
+  "구르미 그린 달빛": "사극 궁중 청춘 로코",
+  "낭만닥터 김사부": "의사",
+  "질투의 화신": "직장 로코",
+  "푸른 바다의 전설": "판타지 로코",
+  "나의 완벽한 비서": "직장 로코",
+  원경: "사극 정치 궁중",
+  "언젠가는 슬기로운 전공의생활": "의사 청춘",
+  "폭군의 셰프": "사극 타임슬립 로코 궁중",
+  "뿌리깊은 나무": "사극 수사 정치",
+  드림하이: "학원 청춘",
+  "내 남편과 결혼해줘": "타임슬립 복수 직장",
+  굿파트너: "법정",
+  "유미의 세포들": "웹툰 로코 직장",
+  "응답하라 1997": "레트로 첫사랑 학원",
+  "미지의 서울": "위로 힐링 가족",
+  "멋진 신세계": "타임슬립 로코",
+  "이 사랑 통역 되나요?": "로코 직장",
+  환혼: "판타지 사극 청춘",
+  "알고있지만,": "청춘 멜로",
+  "어쩌다 발견한 하루": "웹툰 학원 판타지",
+  "아는 와이프": "타임슬립 로코 가족",
+  "황후의 품격": "궁중 복수",
+  "알함브라 궁전의 추억": "판타지 수사",
+  "힘쎈여자 도봉순": "판타지 로코",
+  "쌈 마이웨이": "청춘 로코",
+  "SKY 캐슬": "가족 학원",
+  "킬미, 힐미": "로코 위로",
+  하이에나: "법정 로코",
+  "그녀는 예뻤다": "직장 첫사랑 로코",
+  시그널: "수사 판타지",
+  "역도요정 김복주": "청춘 학원 로코 첫사랑",
+  "이번 생은 처음이라": "계약 로코 위로",
+  "당신이 잠든 사이에": "판타지 수사",
+  "백일의 낭군님": "사극 로코",
+  "호텔 델루나": "귀신 판타지 멜로",
+  스토브리그: "직장",
+  킹덤: "사극 정치",
+  "멜로가 체질": "직장 위로 로코",
+  "이태원 클라쓰": "복수 청춘",
+  "사이코지만 괜찮아": "위로 멜로",
+  "부부의 세계": "복수 가족",
+  스타트업: "직장 청춘 첫사랑",
+  스위트홈: "판타지",
+  빈센조: "복수 법정",
+  "갯마을 차차차": "힐링 로코",
+  "D.P.": "군인",
+  "이상한 변호사 우영우": "법정 위로",
+  "재벌집 막내아들": "타임슬립 재벌 복수",
+  사내맞선: "계약 직장 로코",
+  "닥터 차정숙": "의사 가족",
+  "정신병동에도 아침이 와요": "의사 위로",
+  "지금 거신 전화는": "계약 멜로 수사",
+  중증외상센터: "의사",
+  "내 이름은 김삼순": "로코 위로",
+  "커피프린스 1호점": "로코 청춘",
+  하얀거탑: "의사 정치",
+  "해를 품은 달": "사극 궁중 멜로",
+  "별에서 온 그대": "판타지 로코",
+  "응답하라 1994": "레트로 첫사랑 청춘",
+  "굿 닥터": "의사 위로",
+  "괜찮아, 사랑이야": "위로 멜로",
+  미생: "직장 위로",
+  "디어 마이 프렌즈": "가족 위로",
+  보이스: "수사",
+  고백부부: "타임슬립 가족",
+  "런 온": "로코 청춘",
+  여신강림: "학원 웹툰 로코",
+  철인왕후: "사극 궁중 로코 판타지",
+  "옷소매 붉은 끝동": "사극 궁중 멜로",
+  나빌레라: "위로 가족",
+  모범택시: "복수",
+  괴물: "수사",
+  마우스: "수사",
+  술꾼도시여자들: "위로 직장",
+  "사랑의 이해": "직장 멜로",
+  "기상청 사람들": "직장 로코",
+  슈룹: "사극 가족 궁중",
+  "웰컴투 삼달리": "힐링 로코 첫사랑",
+  "오징어 게임": "복수",
 };
 const MOOD_N = {};
 Object.entries(MOOD).forEach(([k, v]) => (MOOD_N[normTitle(k)] = v.split(" ")));
@@ -2855,13 +3242,24 @@ function mergeDups() {
     a.liked = a.liked || b.liked;
     a.keys = [...new Set([...a.keys, ...b.keys])];
     for (const i in b.notes) if (!a.notes[i]) a.notes[i] = b.notes[i];
-    ["review", "rating", "poster", "posterBig", "en", "tvId", "year", "network", "kind", "info"].forEach(
-      (f) => {
-        if (!a[f] && b[f]) a[f] = b[f];
-      },
-    );
+    [
+      "review",
+      "rating",
+      "poster",
+      "posterBig",
+      "en",
+      "tvId",
+      "year",
+      "network",
+      "kind",
+      "info",
+    ].forEach((f) => {
+      if (!a[f] && b[f]) a[f] = b[f];
+    });
     if (a.eps === b.eps)
-      a.scores = a.scores.map((v, i) => (v === null || v === undefined ? b.scores[i] : v));
+      a.scores = a.scores.map((v, i) =>
+        v === null || v === undefined ? b.scores[i] : v,
+      );
     a.touched = Math.max(a.touched || 0, b.touched || 0);
     moved[b.id] = a.id;
     if (a !== k) keep[keep.indexOf(k)] = a;
@@ -2979,7 +3377,13 @@ function drawReviews() {
       BODY,
     );
   L.sortChips = [
-    { key: "next", x: x - 6, y: y0 + 40, w: textWidthOf(sortLabel, 12, BODY) + 12, h: 26 },
+    {
+      key: "next",
+      x: x - 6,
+      y: y0 + 40,
+      w: textWidthOf(sortLabel, 12, BODY) + 12,
+      h: 26,
+    },
   ];
   say(`${total}`, x + w - 74, y0 + 34, 40, C.paper, RIGHT, BASELINE, LAB);
   say("개의 감상", x + w, y0 + 30, 13, C.dim, RIGHT, BASELINE, BODY);
@@ -2989,7 +3393,16 @@ function drawReviews() {
       say("찾는 감상이 없어요", x, y0 + 130, 30, C.paper, LEFT, BASELINE, DISP);
       return;
     }
-    say("아직 남긴 감상이 없어요", x, y0 + 120, 34, C.paper, LEFT, BASELINE, DISP);
+    say(
+      "아직 남긴 감상이 없어요",
+      x,
+      y0 + 120,
+      34,
+      C.paper,
+      LEFT,
+      BASELINE,
+      DISP,
+    );
     say(
       "티켓 뒷면에서 한줄평을 쓰거나, 회차 띠를 꾹 눌러 그 화 메모를 남겨 보세요",
       x,
@@ -3015,10 +3428,13 @@ function drawReviews() {
   const LH = 21;
   // 회차 메모 칸 높이: 한 화 = 한 줄 (아래로 쌓임 · 최대 4줄 + '외 N개')
   const MROW = 22;
-  const memoH = (n) => (n ? 6 + Math.min(n, 4) * MROW + (n > 4 ? 16 : 0) + 6 : 0);
+  const memoH = (n) =>
+    n ? 6 + Math.min(n, 4) * MROW + (n > 4 ? 16 : 0) + 6 : 0;
   // 1) 카드마다 그릴 내용과 높이 계산
   const cards = list.map((d) => {
-    const ws = watches(d).filter((q) => q.review).slice(-3);
+    const ws = watches(d)
+      .filter((q) => q.review)
+      .slice(-3);
     const notes = Object.keys(d.notes)
       .map(Number)
       .filter((i) => i < d.eps)
@@ -3026,11 +3442,16 @@ function drawReviews() {
     let lines = [];
     if (ws.length === 1) {
       // 한 번 본 드라마: 관람평을 줄바꿈까지 그대로 (최대 5줄)
-      ws[0].review.split("\n").forEach((para, j, arr) =>
-        wrapStr((j === 0 ? "“" : "") + para + (j === arr.length - 1 ? "”" : ""), qw, FS, BODY).forEach((ln) =>
-          lines.push({ t: ln }),
-        ),
-      );
+      ws[0].review
+        .split("\n")
+        .forEach((para, j, arr) =>
+          wrapStr(
+            (j === 0 ? "“" : "") + para + (j === arr.length - 1 ? "”" : ""),
+            qw,
+            FS,
+            BODY,
+          ).forEach((ln) => lines.push({ t: ln })),
+        );
       if (lines.length > 5) {
         lines = lines.slice(0, 5);
         lines[4].t = fitStr(lines[4].t + "……", qw, FS, BODY);
@@ -3046,7 +3467,13 @@ function drawReviews() {
       );
     const h = Math.max(
       108, // 포스터 높이
-      14 + 20 + 18 + 10 + Math.max(1, lines.length) * LH + memoH(notes.length) + 12,
+      14 +
+        20 +
+        18 +
+        10 +
+        Math.max(1, lines.length) * LH +
+        memoH(notes.length) +
+        12,
     );
     return { d, lines, notes, h };
   });
@@ -3089,11 +3516,21 @@ function drawReviews() {
     } else {
       fill(0, 0, 0, 110);
       rect(x0 + 3, ry + 5, CW, h, 9);
-      fill(REVIEW_CARD === "tint" ? lerpColor(color(acc), color(C.paper), 0.82) : color(C.paper));
+      fill(
+        REVIEW_CARD === "tint"
+          ? lerpColor(color(acc), color(C.paper), 0.82)
+          : color(C.paper),
+      );
       rect(x0, ry, CW, h, 9);
     }
     // 왼쪽 쪽지: 포스터 + 절취선
-    drawPoster(d, x0 + 12, ry + 12, SW - 24, Math.min(h - 24, (SW - 24) * 1.45));
+    drawPoster(
+      d,
+      x0 + 12,
+      ry + 12,
+      SW - 24,
+      Math.min(h - 24, (SW - 24) * 1.45),
+    );
     ctx.setLineDash([3, 4]);
     stroke(clear ? color(255, 255, 255, 40) : color(0, 0, 0, 55));
     strokeWeight(1.5);
@@ -3119,14 +3556,46 @@ function drawReviews() {
     const rt = LR.r ? String(LR.r) : "–";
     const rw = textWidthOf("/10", 11, LAB);
     say("/10", x0 + CW - 16, ry + 34, 11, INK, RIGHT, BASELINE, LAB, 120);
-    say(rt, x0 + CW - 18 - rw, ry + 36, 28, LR.r ? INK : FAINT, RIGHT, BASELINE, LAB, LR.label ? 150 : 255);
-    if (LR.label) say(`${LR.label} 평점`, x0 + CW - 16, ry + 50, 10, INK, RIGHT, BASELINE, BODY, 130);
+    say(
+      rt,
+      x0 + CW - 18 - rw,
+      ry + 36,
+      28,
+      LR.r ? INK : FAINT,
+      RIGHT,
+      BASELINE,
+      LAB,
+      LR.label ? 150 : 255,
+    );
+    if (LR.label)
+      say(
+        `${LR.label} 평점`,
+        x0 + CW - 16,
+        ry + 50,
+        10,
+        INK,
+        RIGHT,
+        BASELINE,
+        BODY,
+        130,
+      );
     const rTot = textWidthOf(rt, 28, LAB) + rw + 6;
     if (d.liked) heart(x0 + CW - 24 - rTot, ry + 22, 11, true, HEART);
-    say(fitStr(d.title, qw - rTot - 30, 15, DISP), qx, ry + 30, 15, INK, LEFT, BASELINE, DISP);
+    say(
+      fitStr(d.title, qw - rTot - 30, 15, DISP),
+      qx,
+      ry + 30,
+      15,
+      INK,
+      LEFT,
+      BASELINE,
+      DISP,
+    );
     say(
       fitStr(
-        [d.year, d.network, kindOf(d), d.watchLabel].filter(Boolean).join(" · "),
+        [d.year, d.network, kindOf(d), d.watchLabel]
+          .filter(Boolean)
+          .join(" · "),
         qw - rTot - 10,
         11,
         BODY,
@@ -3146,8 +3615,29 @@ function drawReviews() {
       say("관람평 없음", qx, ly, 12, INK, LEFT, BASELINE, BODY, 90);
     lines.forEach((L1) => {
       if (L1.lab) {
-        say(L1.lab, qx, ly, 11, L1.now ? acc : FAINT, LEFT, BASELINE, BODY, 255, true);
-        say(L1.t, qx + 44, ly, FS, INK, LEFT, BASELINE, BODY, L1.now ? 255 : 150);
+        say(
+          L1.lab,
+          qx,
+          ly,
+          11,
+          L1.now ? acc : FAINT,
+          LEFT,
+          BASELINE,
+          BODY,
+          255,
+          true,
+        );
+        say(
+          L1.t,
+          qx + 44,
+          ly,
+          FS,
+          INK,
+          LEFT,
+          BASELINE,
+          BODY,
+          L1.now ? 255 : 150,
+        );
       } else say(L1.t, qx, ly, FS, INK, LEFT, BASELINE, BODY);
       ly += LH;
     });
@@ -3160,7 +3650,14 @@ function drawReviews() {
         const tc = color(acc);
         tc.setAlpha(46);
         fill(tc);
-      } else fill(lerpColor(color(acc), color(C.paper), REVIEW_CARD === "tint" ? 0.6 : 0.78));
+      } else
+        fill(
+          lerpColor(
+            color(acc),
+            color(C.paper),
+            REVIEW_CARD === "tint" ? 0.6 : 0.78,
+          ),
+        );
       rect(qx - 6, my, qw + 12, mh, 6);
       fill(acc);
       rect(qx - 6, my, 4, mh, 6, 0, 0, 6);
@@ -3172,10 +3669,30 @@ function drawReviews() {
         rect(qx + 4, ly + 2, ew, 16, 4);
         say(ep, qx + 4 + ew / 2, ly + 15, 12, "#17171A", CENTER, BASELINE, LAB);
         const t = d.notes[i].replace(/\n/g, " ");
-        say(fitStr(t, qw - ew - 20, 13, BODY), qx + ew + 12, ly + 15, 13, INK, LEFT, BASELINE, BODY, 255);
+        say(
+          fitStr(t, qw - ew - 20, 13, BODY),
+          qx + ew + 12,
+          ly + 15,
+          13,
+          INK,
+          LEFT,
+          BASELINE,
+          BODY,
+          255,
+        );
       });
       if (notes.length > 4)
-        say(`+ 메모 ${notes.length - 4}개 더 · 톡 = 크게 보기`, qx + 4, my + 6 + 4 * MROW + 11, 11, INK, LEFT, BASELINE, BODY, 140);
+        say(
+          `+ 메모 ${notes.length - 4}개 더 · 톡 = 크게 보기`,
+          qx + 4,
+          my + 6 + 4 * MROW + 11,
+          11,
+          INK,
+          LEFT,
+          BASELINE,
+          BODY,
+          140,
+        );
     }
     L.reviewRows.push({ d, x: x0, y: ry, w: CW, h });
   });
@@ -3253,7 +3770,8 @@ function drawTaste() {
   const kw = 340;
   const kx = x + w - kw;
   say("장르 (♥ 기준)", kx, y0 + 58, 12, C.dim, LEFT, BASELINE, BODY);
-  KINDS.filter((k) => cnt[k]).forEach((k, i) => { // 0인 장르는 안 보임
+  KINDS.filter((k) => cnt[k]).forEach((k, i) => {
+    // 0인 장르는 안 보임
     const ry = y0 + 68 + i * 20;
     const n = cnt[k] || 0;
     fill(KIND_COL[k]);
@@ -3404,7 +3922,18 @@ function drawTaste() {
       const by = cy + 12;
       fill(23, 23, 26, 220);
       rect(bx, by, 54, 24, 12);
-      say("+ 예매", bx + 27, by + 13, 11, C.paper, CENTER, CENTER, BODY, 255, true);
+      say(
+        "+ 예매",
+        bx + 27,
+        by + 13,
+        11,
+        C.paper,
+        CENTER,
+        CENTER,
+        BODY,
+        255,
+        true,
+      );
       L.recs.push({
         it,
         x: cx,
@@ -3452,7 +3981,16 @@ function recGroups(list, cnt) {
       .forEach((y) =>
         CATALOG[y].forEach(([ko, en, network, eps, kind]) => {
           if (kind !== k || findMine(ko, en)) return;
-          items.push({ key: en, ko, en, network, eps, kind, year: String(y), d: null });
+          items.push({
+            key: en,
+            ko,
+            en,
+            network,
+            eps,
+            kind,
+            year: String(y),
+            d: null,
+          });
         }),
       );
     return items;
@@ -3479,8 +4017,11 @@ function recGroups(list, cnt) {
       kind: top.join(" · "),
       col: KIND_COL[top[0]],
       // 위 결을 다 봤으면 안내를 바꿈
-      head: fromTop ? null : `${top.join(" · ")}는 거의 다 봤어요 · 이런 결은 어때요?`,
-      more: fromTop && others.length ? `+ ${others.join(" · ")}도 섞었어요` : "",
+      head: fromTop
+        ? null
+        : `${top.join(" · ")}는 거의 다 봤어요 · 이런 결은 어때요?`,
+      more:
+        fromTop && others.length ? `+ ${others.join(" · ")}도 섞었어요` : "",
       from: list
         .filter((d) => top.includes(kindOf(d)))
         .slice(0, 2)
@@ -3488,7 +4029,9 @@ function recGroups(list, cnt) {
       items: items.map((it) => {
         // 추천 이유: 같은 결로 ♥한 드라마 하나
         const same = list.find((d) => kindOf(d) === it.kind);
-        it.reason = same ? `♥한 '${same.title}'처럼 ${it.kind}` : `새로운 결 · ${it.kind}`;
+        it.reason = same
+          ? `♥한 '${same.title}'처럼 ${it.kind}`
+          : `새로운 결 · ${it.kind}`;
         return it;
       }),
     },
@@ -3504,7 +4047,7 @@ function fetchRecPosters(items) {
   catBusy = true;
   tvSearch(it.en)
     .then((res) => {
-      const hit = res.find((r) => r.lang === "Korean") || res[0];
+      const hit = res.find((r) => r.lang === "Korean"); // 한국 드라마만 (엉뚱한 외국 드라마 포스터가 붙지 않게)
       if (hit) {
         catInfo[it.en] = hit;
         saveCat();
@@ -3552,7 +4095,7 @@ function drawFolders() {
   const w = I.w;
   say("FOLDERS", x, I.y + 30, 20, C.dim, LEFT, BASELINE, LAB);
   say(
-    "폴더를 열고 + 칸 = 티켓 넣기 · 티켓 벽에서 꾹 눌러 다른 티켓 위에 놓아도 묶여요",
+    "폴더를 열고 + 칸 = 티켓 넣기",
     x + textWidthOf("FOLDERS", 20, LAB) + 12,
     I.y + 29,
     12,
@@ -3600,7 +4143,8 @@ function drawFolders() {
         fill(0, 0, 0, on ? 70 : 28);
         circle(dx, dy, 34);
         trashIcon(dx, dy + 1, on ? C.ink : "rgba(23,23,26,0.7)", 0.8);
-        if (dy - 18 >= top - 8) L.tileDels.push({ st: t.st, x: dx - 18, y: dy - 18, w: 36, h: 36 });
+        if (dy - 18 >= top - 8)
+          L.tileDels.push({ st: t.st, x: dx - 18, y: dy - 18, w: 36, h: 36 });
       }
     }
     L.tiles.push({ f: t, x: tx, y: ty, w: tw, h: th });
@@ -3678,7 +4222,7 @@ function drawEnvelope(f, x, y, w, h, hot) {
     .filter(Boolean)
     .join("  ·  ");
   say(
-    f.members.length ? sum : "비어 있어요 · 티켓을 끌어다 놓기",
+    f.members.length ? sum : "비어 있어요 · 열고 + 칸으로 넣기",
     x + 16,
     top + 90,
     13,
@@ -3734,8 +4278,7 @@ function drawFolderOpen(f, I) {
   say("← 모든 폴더", x, y0 + 30, 14, C.dim, LEFT, BASELINE, BODY, 255, true);
   L.backLink = { x: x - 6, y: y0 + 8, w: 110, h: 32 };
   say(f.name, x, y0 + 92, 46, f.color, LEFT, BASELINE, DISP);
-  const sub =
-    `${f.members.length}장 · + 칸 = 티켓 넣기 · 이름 = 고치기 · 끌어 내려 휴지통에 = 빼기`;
+  const sub = `${f.members.length}장 · + 칸 = 티켓 넣기 · 이름 = 고치기 · 끌어 내려 휴지통에 = 빼기`;
   say(sub, x, y0 + 120, 12, C.dim, LEFT, BASELINE, BODY);
   if (f.type === "set")
     L.nameHit = { x, y: y0 + 46, w: textWidthOf(f.name, 46, DISP) + 20, h: 56 };
@@ -3813,7 +4356,18 @@ function drawFolderOpen(f, I) {
   ctx.setLineDash([]);
   noStroke();
   say("+", ax + mw / 2, ay + mh / 2 - 26, 46, f.color, CENTER, CENTER, LAB);
-  say("티켓 넣기", ax + mw / 2, ay + mh / 2 + 16, 13, C.paper, CENTER, CENTER, BODY, 255, true);
+  say(
+    "티켓 넣기",
+    ax + mw / 2,
+    ay + mh / 2 + 16,
+    13,
+    C.paper,
+    CENTER,
+    CENTER,
+    BODY,
+    255,
+    true,
+  );
   say(
     "포스터로 골라요",
     ax + mw / 2,
@@ -4069,19 +4623,45 @@ function drawToast() {
     );
 }
 
-
 // ▶ drawHelp — 시작 화면 겸 사용법: 무슨 앱인지 → 3단계로 쓰는 법 → 손동작 → 시작하기 (아무 데나 누르면 닫힘)
 // 시작 화면: '쓰는 법'이 아니라 '어떤 앱인지' (쓰는 법은 바로 뒤 손가락 시연이 보여 줌)
 const INTRO_STEPS = [
-  ["티켓으로 모으기", "본 드라마가 한 장씩 쌓이는 관람 기록", ["영화관 티켓처럼 드라마도 한 장씩", "연도별 상자에 차곡차곡", "보고 싶은 드라마는 '예매'로 미리"]],
-  ["회차마다 메모", "이 앱의 핵심 · 그때의 감정을 바로", ["몇 화가 제일 재밌었는지", "울었던 장면 · 명대사 한 줄", "다 보고 나면 한 줄 관람평"]],
-  ["다시 볼 때 비교", "정주행할 때마다 달라지는 나", ["1회차 · 2회차 감상을 나란히", "그때는 몰랐던 장면이 보여요", "내 취향을 알고 비슷한 드라마 추천"]],
+  [
+    "티켓으로 모으기",
+    "본 드라마가 한 장씩 쌓이는 관람 기록",
+    [
+      "영화관 티켓처럼 드라마도 한 장씩",
+      "연도별 상자에 차곡차곡",
+      "보고 싶은 드라마는 '예매'로 미리",
+    ],
+  ],
+  [
+    "회차마다 메모",
+    "이 앱의 핵심 · 그때의 감정을 바로",
+    [
+      "몇 화가 제일 재밌었는지",
+      "울었던 장면 · 명대사 한 줄",
+      "다 보고 나면 한 줄 관람평",
+    ],
+  ],
+  [
+    "다시 볼 때 비교",
+    "정주행할 때마다 달라지는 나",
+    [
+      "1회차 · 2회차 감상을 나란히",
+      "그때는 몰랐던 장면이 보여요",
+      "내 취향을 알고 비슷한 드라마 추천",
+    ],
+  ],
 ];
 // ▶ 처음 시연 (tour) — 티켓 한 장으로 '찾기 → 발권 → 뒤집기 → 평점 → 관람평 → 회차 재미 → 회차 메모'를
 //   손가락이 직접 해 보임. 진짜 티켓이 아니라 시연용 복사본이라 내 기록은 안 바뀜 · 아무 데나 톡 = 건너뛰기
 let tour = null;
 const TOUR_TITLE = "견우와 선녀";
-const TOUR_POSTER = ["https://static.tvmaze.com/uploads/images/medium_portrait/591/1478354.jpg", "https://static.tvmaze.com/uploads/images/original_untouched/591/1478354.jpg"]; // 시연용 포스터 (티켓 목록엔 없음 → 사람들이 직접 찾아 발권해 볼 수 있게)
+const TOUR_POSTER = [
+  "https://static.tvmaze.com/uploads/images/medium_portrait/591/1478354.jpg",
+  "https://static.tvmaze.com/uploads/images/original_untouched/591/1478354.jpg",
+]; // 시연용 포스터 (티켓 목록엔 없음 → 사람들이 직접 찾아 발권해 볼 수 있게)
 const TOUR_STEPS = [
   // [시작 ms, 끝 ms, 왼쪽 큰 글자, 작은 설명]
   [0, 3600, "찾아서 발권", "위 검색창에 제목 → 톡 하면 티켓 한 장"],
@@ -4090,14 +4670,42 @@ const TOUR_STEPS = [
   [7200, 9800, "관람평 쓰기", "줄 노트를 톡 하고 그대로 쓰기"],
   [9800, 12600, "띠를 그어 회차 재미", "한 화 = 막대 하나 · 위아래로 그어요"],
   [12600, 15400, "꾹 = 그 화 메모", "명장면 · 명대사를 그 화에 남겨요"],
-  [15400, 99999, "이제 직접 해 보세요", "오른쪽 위 ? 를 누르면 다시 볼 수 있어요"],
+  [
+    15400,
+    99999,
+    "이제 직접 해 보세요",
+    "오른쪽 위 ? 를 누르면 다시 볼 수 있어요",
+  ],
 ];
 function startTour() {
-  const real = data.dramas.find((q) => normTitle(q.title) === normTitle(TOUR_TITLE)) || data.dramas.find((q) => q.poster);
-  const base = real && normTitle(real.title) === normTitle(TOUR_TITLE)
-    ? real
-    : { title: TOUR_TITLE, en: "Head over Heels", year: "2025", network: "tvN", eps: 12, kind: "로맨스", poster: TOUR_POSTER[0], posterBig: TOUR_POSTER[1] };
-  const d = makeDrama({ title: base.title, en: base.en, year: base.year, network: base.network, eps: base.eps, kind: base.kind || "로맨스", poster: base.poster, posterBig: base.posterBig, tvId: base.tvId, info: base.info });
+  const real =
+    data.dramas.find((q) => normTitle(q.title) === normTitle(TOUR_TITLE)) ||
+    data.dramas.find((q) => q.poster);
+  const base =
+    real && normTitle(real.title) === normTitle(TOUR_TITLE)
+      ? real
+      : {
+          title: TOUR_TITLE,
+          en: "Head over Heels",
+          year: "2025",
+          network: "tvN",
+          eps: 12,
+          kind: "로맨스",
+          poster: TOUR_POSTER[0],
+          posterBig: TOUR_POSTER[1],
+        };
+  const d = makeDrama({
+    title: base.title,
+    en: base.en,
+    year: base.year,
+    network: base.network,
+    eps: base.eps,
+    kind: base.kind || "로맨스",
+    poster: base.poster,
+    posterBig: base.posterBig,
+    tvId: base.tvId,
+    info: base.info,
+  });
   d.status = "watching";
   tour = { t0: millis(), st0: millis(), step: 0, d }; // step = 지금 단계 · 톡 할 때마다 다음 단계
   opened = false;
@@ -4130,12 +4738,31 @@ function drawTour() {
   rect(0, 0, W0, H0);
 
   // ── 시연용 티켓의 상태를 시간에 맞춰 바꿈 ──
-  const typedQ = TOUR_TITLE.slice(0, Math.floor(constrain((e - 700) / 140, 0, TOUR_TITLE.length)));
+  const typedQ = TOUR_TITLE.slice(
+    0,
+    Math.floor(constrain((e - 700) / 140, 0, TOUR_TITLE.length)),
+  );
   const RATE_T = [5900, 6250, 6600, 6950];
   d.rating = RATE_T.filter((t) => e > t).length * 2 || null;
   const REV = "첫사랑 사수 로맨스. 설렘 그 자체!";
-  d.review = REV.slice(0, Math.floor(constrain((e - 7900) / 85, 0, REV.length)));
-  const HS = [0.6, 0.7, 0.95, 0.65, 0.75, 0.8, 0.7, 0.9, null, null, null, null];
+  d.review = REV.slice(
+    0,
+    Math.floor(constrain((e - 7900) / 85, 0, REV.length)),
+  );
+  const HS = [
+    0.6,
+    0.7,
+    0.95,
+    0.65,
+    0.75,
+    0.8,
+    0.7,
+    0.9,
+    null,
+    null,
+    null,
+    null,
+  ];
   const dragT = constrain((e - 10300) / 1800, 0, 1); // 띠를 1화 → 8화로 긋기
   const reach = dragT * 8;
   d.scores = HS.map((v, i) => (v !== null && i < reach ? v : null));
@@ -4171,13 +4798,28 @@ function drawTour() {
   ctx.save();
   ctx.globalAlpha = la;
   if (si < TOUR_STEPS.length - 1)
-    say(`STEP ${si + 1} / ${TOUR_STEPS.length - 1}`, LX, 300 + 10 * (1 - la), 16, ACCENTS[(si + 6) % ACCENTS.length], LEFT, BASELINE, LAB);
+    say(
+      `STEP ${si + 1} / ${TOUR_STEPS.length - 1}`,
+      LX,
+      300 + 10 * (1 - la),
+      16,
+      ACCENTS[(si + 6) % ACCENTS.length],
+      LEFT,
+      BASELINE,
+      LAB,
+    );
   say(head, LX, 350 + 10 * (1 - la), 44, C.paper, LEFT, BASELINE, DISP);
   say(sub, LX, 384 + 10 * (1 - la), 16, C.dim, LEFT, BASELINE, BODY);
   ctx.restore();
   // 단계 점
   TOUR_STEPS.slice(0, -1).forEach((_, k) => {
-    fill(k === si ? C.paper : k < si ? "rgba(242,237,227,0.55)" : "rgba(242,237,227,0.18)");
+    fill(
+      k === si
+        ? C.paper
+        : k < si
+          ? "rgba(242,237,227,0.55)"
+          : "rgba(242,237,227,0.18)",
+    );
     rect(LX + k * 30, 420, 22, 4, 2);
   });
 
@@ -4189,7 +4831,17 @@ function drawTour() {
     ctx.globalAlpha = a;
     fill(C.paper);
     rect(SB.x, SB.y, SB.w, SB.h, 22);
-    say(typedQ || "드라마 제목 · 영어 제목", SB.x + 20, SB.y + 28, 15, C.ink, LEFT, BASELINE, BODY, typedQ ? 255 : 90);
+    say(
+      typedQ || "드라마 제목 · 영어 제목",
+      SB.x + 20,
+      SB.y + 28,
+      15,
+      C.ink,
+      LEFT,
+      BASELINE,
+      BODY,
+      typedQ ? 255 : 90,
+    );
     if (Math.floor(e / 350) % 2 === 0 && typedQ.length < TOUR_TITLE.length) {
       fill(C.ink);
       rect(SB.x + 22 + textWidthOf(typedQ, 15, BODY), SB.y + 13, 1.5, 18);
@@ -4200,20 +4852,57 @@ function drawTour() {
       fill("#26262B");
       rect(SB.x, SB.y + 52, SB.w, 76, 12);
       drawPoster(d, SB.x + 12, SB.y + 62, 40, 56, 4);
-      say(TOUR_TITLE, SB.x + 64, SB.y + 86, 16, C.paper, LEFT, BASELINE, BODY, 255, true);
-      say("2025 · tvN · 12부작 · 로맨스", SB.x + 64, SB.y + 108, 12, C.dim, LEFT, BASELINE, BODY);
+      say(
+        TOUR_TITLE,
+        SB.x + 64,
+        SB.y + 86,
+        16,
+        C.paper,
+        LEFT,
+        BASELINE,
+        BODY,
+        255,
+        true,
+      );
+      say(
+        "2025 · tvN · 12부작 · 로맨스",
+        SB.x + 64,
+        SB.y + 108,
+        12,
+        C.dim,
+        LEFT,
+        BASELINE,
+        BODY,
+      );
       fill(C.paper);
       rect(SB.x + SB.w - 84, SB.y + 74, 70, 30, 15);
-      say("+ 발권", SB.x + SB.w - 49, SB.y + 94, 13, C.ink, CENTER, BASELINE, BODY, 255, true);
+      say(
+        "+ 발권",
+        SB.x + SB.w - 49,
+        SB.y + 94,
+        13,
+        C.ink,
+        CENTER,
+        BASELINE,
+        BODY,
+        255,
+        true,
+      );
     }
     ctx.restore();
   }
 
   // ── 손가락 길: [시각, x, y, 누름] 사이를 부드럽게 ──
   const tc = { x: T.x + T.w / 2, y: T.y + T.h * 0.42 };
-  const star = (n) => ({ x: T.x + T.w - 132 + Math.floor((n - 1) / 2) * 23 + 10, y: T.y + 160 });
+  const star = (n) => ({
+    x: T.x + T.w - 132 + Math.floor((n - 1) / 2) * 23 + 10,
+    y: T.y + 160,
+  });
   const paper = { x: T.x + 120, y: T.y + 290 };
-  const bar = (i) => (strip ? { x: strip.bx + (i + 0.5) * strip.bw, y: strip.y + strip.barH * 0.55 } : tc);
+  const bar = (i) =>
+    strip
+      ? { x: strip.bx + (i + 0.5) * strip.bw, y: strip.y + strip.barH * 0.55 }
+      : tc;
   const KEYS = [
     [0, SB.x + 300, SB.y + 200, 0],
     [600, SB.x + 120, SB.y + 30, 0],
@@ -4282,12 +4971,34 @@ function drawTour() {
     ctx.globalAlpha = ea;
     fill(C.paper);
     rect(LX, 460, 200, 50, 25);
-    say("시작하기", LX + 100, 491, 17, C.ink, CENTER, BASELINE, BODY, 255, true);
+    say(
+      "시작하기",
+      LX + 100,
+      491,
+      17,
+      C.ink,
+      CENTER,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
     ctx.restore();
   } else if (waiting) {
     // 이 단계 움직임이 끝나면: 다음으로 넘기라는 안내 (천천히 깜빡)
     const blink = 150 + 105 * Math.sin(millis() * HINT_SPEED * 1.5);
-    say("톡 하면 다음  ›", LX, 470 + 2 * Math.sin(millis() * HINT_SPEED * 1.5), 15, C.paper, LEFT, BASELINE, BODY, blink, true);
+    say(
+      "톡 하면 다음  ›",
+      LX,
+      470 + 2 * Math.sin(millis() * HINT_SPEED * 1.5),
+      15,
+      C.paper,
+      LEFT,
+      BASELINE,
+      BODY,
+      blink,
+      true,
+    );
   }
   // 건너뛰기 (오른쪽 위)
   const sk = "건너뛰기  ›";
@@ -4305,62 +5016,123 @@ function drawEpTipFor(d, i) {
 
 // ▶ drawHelpMenu — ? 아래 작은 메뉴: 무엇을 다시 볼지 (처음 화면 · 티켓 쓰는 법 · 감상 · 취향 · 폴더)
 const HELP_ITEMS = [
-  ["처음 화면", "무슨 앱인지", () => {
-    helpOpen = true;
-    helpOnly = true; // 처음 화면만 (닫으면 시연 없이 바로)
-  }],
-  ["티켓 쓰는 법", "찾기 → 평점 → 관람평 → 회차 메모", () => {
-    setView("ticket");
-    startTour();
-  }],
+  [
+    "처음 화면",
+    "무슨 앱인지",
+    () => {
+      helpOpen = true;
+      helpOnly = true; // 처음 화면만 (닫으면 시연 없이 바로)
+    },
+  ],
+  [
+    "티켓 쓰는 법",
+    "찾기 → 평점 → 관람평 → 회차 메모",
+    () => {
+      setView("ticket");
+      startTour();
+    },
+  ],
   ["감상", "관람평 모아 보기", () => showTabDemo("reviews")],
   ["취향", "내 취향 · 추천", () => showTabDemo("taste")],
   ["폴더", "나만의 묶음", () => showTabDemo("folders")],
-  ["내 일지 공유하기", "내 티켓 · 관람평 · 메모가 담긴 파일 하나로 보내기", () => exportForShare()],
+  [
+    "내 일지 공유하기",
+    "내 티켓 · 관람평 · 메모가 담긴 파일 하나로 보내기",
+    () => exportForShare(),
+  ],
 ];
 // ▶ exportSeed — 지금 일지를 seed.js 파일로 내려받기 (시연용 폴더에 index.html · sketch.js와 같이 넣어 보내면
 //   다른 컴퓨터에서도 처음 열 때 이 티켓들로 시작함 · 그 사람이 쓴 건 그 컴퓨터에 따로 저장)
 function exportSeed() {
   const copy = JSON.parse(JSON.stringify(data));
   copy.sample = false;
-  const txt = "// 정주행 일지 · 내 일지 내보내기 (" + new Date().toLocaleString("ko-KR") + ")\nwindow.SEED = " + JSON.stringify(copy) + ";\n";
+  const txt =
+    "// 정주행 일지 · 내 일지 내보내기 (" +
+    new Date().toLocaleString("ko-KR") +
+    ")\nwindow.SEED = " +
+    JSON.stringify(copy) +
+    ";\n";
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([txt], { type: "text/javascript" }));
   a.download = "seed.js";
   document.body.appendChild(a);
   a.click();
   a.remove();
-  toast(`티켓 ${copy.dramas.length}장을 seed.js로 저장했어요 · 시연용 폴더에 넣어 보내세요`);
+  toast(
+    `티켓 ${copy.dramas.length}장을 seed.js로 저장했어요 · 시연용 폴더에 넣어 보내세요`,
+  );
 }
 // ▶ exportForShare — 다른 사람에게 보낼 파일 하나 만들기: 지금 화면(index.html) + 코드(sketch.js) + 내 티켓 전부를
 //   html 한 파일에 담아 내려받음. 받은 사람은 그 파일만 열면 내 티켓으로 시작 (그 사람이 쓴 건 그 컴퓨터에 따로 저장)
 async function exportForShare() {
+  // 예전엔 'index.html' · 'sketch.js'를 주소로 다시 받아 와서, 링크 끝에 / 가 없거나(…/Drama_Diary)
+  // 공유받은 파일 · 더블클릭한 파일에서 열면 엉뚱한 파일을 받거나 실패했음 → 지금 열린 페이지에서 직접 꺼냄
+  let code = null;
+  // 1) 코드: 이 페이지에 코드가 통째로 들어 있으면(공유받은 파일) 그걸 그대로
+  const inl = [...document.scripts].find(
+    (sc) => !sc.src && sc.textContent.includes("const STARTER_ID"),
+  );
+  if (inl) code = inl.textContent;
+  else {
+    // 2) sketch.js로 불러온 경우: 그 파일의 정확한 주소로 다시 읽기 (링크 끝 / 상관없음)
+    const ext = [...document.scripts].find((sc) =>
+      /sketch\.js(\?|$)/.test(sc.src),
+    );
+    try {
+      if (ext)
+        code = await fetch(ext.src).then((r) => (r.ok ? r.text() : null));
+    } catch (e) {
+      code = null;
+    }
+  }
+  if (!code || !code.includes("function exportForShare")) {
+    return toast(
+      location.protocol === "file:"
+        ? "더블클릭으로 연 파일에선 못 만들어요 · 127.0.0.1이나 링크(GitHub)로 열어서 눌러 주세요"
+        : "파일을 못 만들었어요 · 새로고침한 뒤 다시 눌러 주세요",
+    );
+  }
+  // 화면 모양(CSS): 지금 페이지의 index.html 스타일을 그대로
+  const css = [...document.querySelectorAll("style")]
+    .filter((st) => !st.id) // (앱이 나중에 붙인 스타일은 빼고 index.html 것만)
+    .map((st) => st.textContent)
+    .join("\n");
+  const seed = JSON.parse(JSON.stringify(data));
+  seed.sample = false;
+  const safe = (t) => t.replace(/<\/script/gi, "<\\/script");
+  const shareSlot = "s" + Date.now().toString(36); // 받을 때마다 새 칸 → 예전에 받은 것과 안 섞임
+  const code2 = code.replace(
+    /^const SLOT = "[^"]*";.*$/m,
+    `const SLOT = "${shareSlot}"; // 공유받은 파일 (보낸 사람 티켓으로 시작)`,
+  );
+  const out =
+    '<!doctype html>\n<html lang="ko">\n<head>\n<meta charset="utf-8" />\n' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0" />\n' +
+    "<title>정주행 일지</title>\n" +
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&display=swap" />\n' +
+    "<style>\n" +
+    css +
+    "\n</style>\n" +
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>\n' +
+    "<script>window.SEED = " +
+    safe(JSON.stringify(seed)) +
+    ";</script>\n" +
+    "<script>\n" +
+    safe(code2) +
+    "\n</script>\n" +
+    "</head>\n<body><main></main></body>\n</html>\n";
   try {
-    const [html, code] = await Promise.all([
-      fetch("index.html").then((r) => r.text()),
-      fetch("sketch.js").then((r) => r.text()),
-    ]);
-    const seed = JSON.parse(JSON.stringify(data));
-    seed.sample = false;
-    const safe = (t) => t.replace(/<\/script/gi, "<\\/script");
-    const shareSlot = "s" + Date.now().toString(36); // 받을 때마다 새 칸 → 예전에 받은 것과 안 섞임
-    const code2 = code.replace(/^const SLOT = "[^"]*";.*$/m, `const SLOT = "${shareSlot}"; // 보낸 파일 (내 티켓으로 시작)`);
-    const scripts =
-      '<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>\n' +
-      "<script>window.SEED = " + safe(JSON.stringify(seed)) + ";</script>\n" +
-      "<script>\n" + safe(code2) + "\n</script>\n";
-    // 원래 index.html의 <script src=…> 줄은 빼고 그 자리에 위 세 개를 넣음
-    let out = html.replace(/<script[^>]*src=[^>]*><\/script>\s*/gi, "");
-    out = out.replace(/<\/head>/i, scripts + "</head>");
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([out], { type: "text/html" }));
     a.download = "정주행일지.html";
     document.body.appendChild(a);
     a.click();
     a.remove();
-    toast(`티켓 ${seed.dramas.length}장이 담긴 공유 파일 '정주행일지.html'을 저장했어요`);
+    toast(
+      `티켓 ${seed.dramas.length}장이 담긴 공유 파일 '정주행일지.html'을 저장했어요`,
+    );
   } catch (e) {
-    toast("파일을 못 만들었어요 · 127.0.0.1 주소로 열어서 다시 눌러 주세요");
+    toast("파일을 못 만들었어요 · 다른 브라우저(크롬)에서 다시 눌러 주세요");
   }
 }
 function showTabDemo(key) {
@@ -4370,7 +5142,14 @@ function showTabDemo(key) {
 }
 function drawHelpMenu() {
   // 메뉴 폭 = 가장 긴 글에 맞춤 (설명이 오른쪽에서 잘리지 않게)
-  const w = Math.max(260, ...HELP_ITEMS.map(([t, sub]) => Math.max(textWidthOf(t, 15, BODY, true), textWidthOf(sub, 11, BODY)) + 62));
+  const w = Math.max(
+    260,
+    ...HELP_ITEMS.map(
+      ([t, sub]) =>
+        Math.max(textWidthOf(t, 15, BODY, true), textWidthOf(sub, 11, BODY)) +
+        62,
+    ),
+  );
   const rh = 54;
   const x = 1242 - w;
   const y = 70;
@@ -4381,7 +5160,18 @@ function drawHelpMenu() {
   fill(C.paper);
   rect(x, y, w, h, 14);
   triangle(1224 - 8, y + 1, 1224 + 8, y + 1, 1224, y - 9);
-  say("무엇을 다시 볼까요?", x + 18, y + 28, 13, C.ink, LEFT, BASELINE, BODY, 150, true);
+  say(
+    "무엇을 다시 볼까요?",
+    x + 18,
+    y + 28,
+    13,
+    C.ink,
+    LEFT,
+    BASELINE,
+    BODY,
+    150,
+    true,
+  );
   L.helpItems = [];
   HELP_ITEMS.forEach(([t, sub, run], k) => {
     const ry = y + 40 + k * rh;
@@ -4402,7 +5192,11 @@ let helpT0 = 0; // 시작 화면이 열린 시각 (모션 기준)
 const ease = (v) => 1 - Math.pow(1 - constrain(v, 0, 1), 3); // 빠르게 시작해서 부드럽게 멈춤
 const span = (t, a, b) => ease((t - a) / (b - a)); // t가 a→b 사이에서 0→1
 // 시작 화면: 무슨 앱인지 딱 세 줄
-const INTRO_LINES = ["드라마 한 편 = 티켓", "보면서 회차마다 메모하고", "다시 볼 때를 위해 지금의 감정을 입력해요"];
+const INTRO_LINES = [
+  "드라마 한 편 = 티켓",
+  "보면서 회차마다 메모하고",
+  "다시 볼 때를 위해 지금의 감정을 입력해요",
+];
 function drawHelp() {
   if (!helpT0) helpT0 = millis();
   const e = millis() - helpT0;
@@ -4417,7 +5211,18 @@ function drawHelp() {
   ctx.save();
   ctx.globalAlpha = a0;
   ctx.translate(0, 18 * (1 - a0));
-  say("드라마 감상 메모장", cx, 196, 15, ACCENTS[1], CENTER, BASELINE, BODY, 255, true);
+  say(
+    "드라마 감상 메모장",
+    cx,
+    196,
+    15,
+    ACCENTS[1],
+    CENTER,
+    BASELINE,
+    BODY,
+    255,
+    true,
+  );
   say("정주행 일지", cx, 266, 68, C.paper, CENTER, BASELINE, DISP);
   ctx.restore();
 
@@ -4426,13 +5231,25 @@ function drawHelp() {
     const a = span(e, 600 + k * 350, 1100 + k * 350);
     ctx.save();
     ctx.globalAlpha = a;
-    say(ln, cx, 360 + k * 46 + 12 * (1 - a), 24, k === 1 ? ACCENTS[1] : C.paper, CENTER, BASELINE, BODY, 255, true);
+    say(
+      ln,
+      cx,
+      360 + k * 46 + 12 * (1 - a),
+      24,
+      k === 1 ? ACCENTS[1] : C.paper,
+      CENTER,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
     ctx.restore();
   });
 
   // 시작하기
   const ab = span(e, 1800, 2300);
-  const breathe = 1 + 0.025 * Math.sin((e - 2300) * HINT_SPEED) * (e > 2300 ? 1 : 0);
+  const breathe =
+    1 + 0.025 * Math.sin((e - 2300) * HINT_SPEED) * (e > 2300 ? 1 : 0);
   const bw = 220;
   const by = 510;
   ctx.save();
@@ -4507,14 +5324,20 @@ function introPic(k, x, y, w, h, acc, t) {
     line(x + 8, y + 74, x + w - 8, y + 74);
     noStroke();
     const memo = "우산 장면 = 레전드";
-    const typed = memo.slice(0, Math.floor(constrain((t - 1500) / 90, 0, memo.length)));
+    const typed = memo.slice(
+      0,
+      Math.floor(constrain((t - 1500) / 90, 0, memo.length)),
+    );
     ctx.save();
     ctx.globalAlpha = out;
     say(typed, x + 10, y + 48, 13, ink, LEFT, BASELINE, BODY);
     ctx.restore();
     const n = 16;
     const bw = w / n;
-    const hs = [0.5, 0.6, 0.45, 0.55, 0.5, 0.7, 0.65, 0.95, 0.6, 0.55, 0.7, 0.8, 0, 0, 0, 0];
+    const hs = [
+      0.5, 0.6, 0.45, 0.55, 0.5, 0.7, 0.65, 0.95, 0.6, 0.55, 0.7, 0.8, 0, 0, 0,
+      0,
+    ];
     const by = y + h;
     hs.forEach((v, i) => {
       const grow = v ? span(t, 2200 + i * 80, 2550 + i * 80) * out : 0;
@@ -4525,12 +5348,25 @@ function introPic(k, x, y, w, h, acc, t) {
     const dot = span(t, 3200, 3400) * out; // 8화 메모 점이 톡
     if (dot > 0) {
       fill(acc);
-      circle(x + 7.5 * bw, by - 36 - 8, 6 * dot + 3 * Math.sin(Math.min(1, (t - 3200) / 200) * PI));
+      circle(
+        x + 7.5 * bw,
+        by - 36 - 8,
+        6 * dot + 3 * Math.sin(Math.min(1, (t - 3200) / 200) * PI),
+      );
     }
   } else {
     const rows = [
-      ["1회차", [0.5, 0.6, 0.4, 0.55, 0.5, 0.6, 0.7, 0.8, 0.6, 0.5, 0.6, 0.7, 0.75, 0.6, 0.8, 0.9]],
-      ["2회차", [0.6, 0.7, 0.5, 0.7, 0.6, 0.8, 0.9, 0.95, 0.7, 0, 0, 0, 0, 0, 0, 0]],
+      [
+        "1회차",
+        [
+          0.5, 0.6, 0.4, 0.55, 0.5, 0.6, 0.7, 0.8, 0.6, 0.5, 0.6, 0.7, 0.75,
+          0.6, 0.8, 0.9,
+        ],
+      ],
+      [
+        "2회차",
+        [0.6, 0.7, 0.5, 0.7, 0.6, 0.8, 0.9, 0.95, 0.7, 0, 0, 0, 0, 0, 0, 0],
+      ],
     ];
     rows.forEach(([lab, hs], r) => {
       const ry = y + 6 + r * 58;
@@ -4541,7 +5377,9 @@ function introPic(k, x, y, w, h, acc, t) {
         // 1회차는 그대로 · 2회차는 왼쪽부터 차례로 자라남
         const grow = r ? span(t, 300 + i * 150, 650 + i * 150) * out : 1;
         const hh = v && grow > 0 ? v * 38 * grow : 3;
-        const c = color(v && grow > 0 ? (r ? acc : ink) : "rgba(23,23,26,0.18)");
+        const c = color(
+          v && grow > 0 ? (r ? acc : ink) : "rgba(23,23,26,0.18)",
+        );
         if (v && grow > 0 && !r) c.setAlpha(0.35 * 255);
         fill(c);
         rect(bx + i * bw + bw * 0.2, ry + 40 - hh, bw * 0.6, hh, 1.5);
@@ -4551,7 +5389,18 @@ function introPic(k, x, y, w, h, acc, t) {
     ctx.save();
     ctx.globalAlpha = sh;
     ctx.translate(0, 6 * (1 - sh));
-    say("★7 → ★10  +3", x + w, y + h, 13, acc, RIGHT, BASELINE, BODY, 255, true);
+    say(
+      "★7 → ★10  +3",
+      x + w,
+      y + h,
+      13,
+      acc,
+      RIGHT,
+      BASELINE,
+      BODY,
+      255,
+      true,
+    );
     ctx.restore();
   }
 }
@@ -4590,7 +5439,8 @@ function say(
 // ▶ fixHangul — Bebas Neue(라벨 글꼴)에는 한글이 없어서 "1회차"처럼 섞이면 숫자만 Bebas · 한글은 다른 글꼴로 따로 놀아 어색함
 //   → 한글이 들어간 라벨은 본문 글꼴 굵게, 크기는 살짝 줄여서 (Bebas가 키가 커서)
 function fixHangul(str, font, size, bold) {
-  if (font === LAB && /[가-힣]/.test(String(str))) return [BODY, size * 0.8, true];
+  if (font === LAB && /[가-힣]/.test(String(str)))
+    return [BODY, size * 0.8, true];
   return [font, size, bold];
 }
 function textWidthOf(s, size, font = BODY, bold = false) {
@@ -4775,7 +5625,8 @@ function scoreBarcode(d, x, y, w, h, acc, o = {}) {
     }
     const bwid = Math.max(2, bw * 0.55);
     // 지금 회차에 아직 평이 없으면: 지난 회차 막대를 흐리게 (재시청 중에도 그래프가 비지 않게)
-    const gv = o.ghost && (v === null || v === undefined) ? o.ghost.scores[i] : null;
+    const gv =
+      o.ghost && (v === null || v === undefined) ? o.ghost.scores[i] : null;
     if (gv !== null && gv !== undefined) {
       fill(23, 23, 26, 70);
       rect(x + i * bw + (bw - bwid) / 2, y + h - h * gv, bwid, h * gv, 1.5);
@@ -4855,8 +5706,10 @@ function onWheel(e) {
   const offTicket = !opened || !L.ticket || p.x < L.ticket.x - 60;
   if (panel) return; // (가운데 창이 떠 있을 땐 그 창이 스크롤)
   if (view === "ticket" && offTicket) rackScroll += e.deltaY / K;
-  else if (view === "folders" && !folderSel && offTicket) folderScroll += e.deltaY / K;
-  else if (view === "folders" && folderSel && offTicket) openScroll += e.deltaY / K;
+  else if (view === "folders" && !folderSel && offTicket)
+    folderScroll += e.deltaY / K;
+  else if (view === "folders" && folderSel && offTicket)
+    openScroll += e.deltaY / K;
   else if (view === "taste") tasteScroll += e.deltaY / K;
   else if (view === "reviews") reviewScroll += e.deltaY / K;
   e.preventDefault();
@@ -4954,10 +5807,8 @@ function checkHold() {
     g = null;
     if (navigator.vibrate) navigator.vibrate(12);
     openNote(d, i);
-  } else if (g.where === "rack" && g.d) {
-    g.mode = "carry";
-    if (navigator.vibrate) navigator.vibrate(15);
   }
+  // (티켓 벽에서 꾹 → 끌어다 다른 티켓에 놓아 잇는 기능은 뺌 · 폴더 넣기는 폴더의 + 칸으로)
 }
 
 // ▶ dropTarget — 들고 있는 티켓을 놓을 곳: 꽂이의 다른 티켓 / 폴더 칸 / 연 폴더
@@ -5032,7 +5883,8 @@ function onMove(e) {
   if (g.mode === "scroll") rackScroll = g.startScroll - (p.y - g.sy);
   if (g.mode === "fscroll") folderScroll = g.startF - (p.y - g.sy);
   if (g.where === "taste" && !g.mode && vert) g.mode = "tscroll";
-  if (g.where === "folders" && folderSel && !g.d && !g.mode && vert) g.mode = "oscroll";
+  if (g.where === "folders" && folderSel && !g.d && !g.mode && vert)
+    g.mode = "oscroll";
   if (g.mode === "oscroll") openScroll = g.startO - (p.y - g.sy);
   if (g.where === "reviews" && !g.mode && vert) g.mode = "rscroll";
   if (g.mode === "tscroll") tasteScroll = g.startT - (p.y - g.sy);
@@ -5061,7 +5913,8 @@ function onUp(e) {
   if (helpOpen) {
     helpOpen = false;
     if (helpOnly) return (helpOnly = false);
-    if (!seenOnce("tour") || helpManual || INTRO_EVERY) startTour(); // 시작하면 티켓 한 장으로 찾기 → 평 남기기 시연 (처음 한 번 · ?로 연 때는 다시)
+    if (!seenOnce("tour") || helpManual || INTRO_EVERY)
+      startTour(); // 시작하면 티켓 한 장으로 찾기 → 평 남기기 시연 (처음 한 번 · ?로 연 때는 다시)
     else if (!seenOnce("tab-" + view)) tabTip = { key: view, t0: millis() };
     helpManual = false;
     return;
@@ -5072,7 +5925,8 @@ function onUp(e) {
     saveData();
     return;
   }
-  if (["scroll", "fscroll", "tscroll", "rscroll", "oscroll"].includes(G.mode)) return;
+  if (["scroll", "fscroll", "tscroll", "rscroll", "oscroll"].includes(G.mode))
+    return;
   const tr = toastRect();
   if (isTap && tr && inRect(p, tr) && toastBox.undo) {
     toastBox.undo();
@@ -5112,7 +5966,7 @@ function onUp(e) {
 
   // 티켓 벽
   if (G.where === "rack") {
-    if (G.d && zigzag) return removeDrama(G.d);
+    // (지그재그로 지우기는 뺌 · 지우기는 크게 연 티켓 옆 '삭제'로)
     if (!isTap) return;
     if (inRect(p, L.newBtn)) return newTicket();
     if (inRect(p, L.clearBtn)) return clearSamples();
@@ -5149,8 +6003,8 @@ function onUp(e) {
     if (!isTap) return;
     const h = L.hits.find(
       (q) =>
-            (q.act === "link" || q.act === "del" || q.act === "reset") &&
-            inRect(p, q),
+        (q.act === "link" || q.act === "del" || q.act === "reset") &&
+        inRect(p, q),
     );
     if (h) return ticketAct(G.d, h);
     return (opened = false);
@@ -5352,7 +6206,8 @@ function inlineEdit(r, value, o) {
   el.addEventListener("blur", () => closeInline(true));
   setTimeout(() => {
     el.focus();
-    if (o.paper || o.bare) el.setSelectionRange(el.value.length, el.value.length); // 쓰던 글 끝에 커서 (전체 선택 안 함)
+    if (o.paper || o.bare)
+      el.setSelectionRange(el.value.length, el.value.length); // 쓰던 글 끝에 커서 (전체 선택 안 함)
     else if (el.select) el.select();
   }, 20);
 }
@@ -5419,7 +6274,7 @@ function autoFind(d, q, done) {
       }
   tvSearch(en)
     .then((res) => {
-      const hit = res.find((r) => r.lang === "Korean") || res[0];
+      const hit = res.find((r) => r.lang === "Korean"); // 한국 드라마만 (엉뚱한 외국 드라마 포스터가 붙지 않게)
       if (!hit) return done(false);
       linkInfo(d, hit);
       if (!d.kind) d.kind = kindOf({ info: hit.info });
@@ -5457,7 +6312,12 @@ function editTitle(d) {
   const ts = d.title && textWidthOf(d.title, 28, DISP) > TK.w - 40 ? 22 : 28;
   const bh = 40;
   const btnW = d.tvId ? 0 : 92; // 이미 정보가 붙은 티켓은 '자동 찾기' 없이 제목만
-  const r = { x: TK.x + 20, y: TK.y + 82 - (bh - ts) / 2 - ts * 0.86, w: TK.w - 40, h: bh };
+  const r = {
+    x: TK.x + 20,
+    y: TK.y + 82 - (bh - ts) / 2 - ts * 0.86,
+    w: TK.w - 40,
+    h: bh,
+  };
   const find = (v, b) => {
     if (!v) return;
     d.title = v;
@@ -5501,7 +6361,8 @@ function editTitle(d) {
       d.draft = false;
       data.sample = false;
       setAndSave(d, {});
-      if (wasDraft && !d.tvId && !d.en) find(v); // Enter만 눌러도 처음 한 번은 알아서 찾음
+      if (wasDraft && !d.tvId && !d.en)
+        find(v); // Enter만 눌러도 처음 한 번은 알아서 찾음
       else delete d.fresh;
     },
   };
@@ -5593,19 +6454,26 @@ function ticketAct(d, h) {
     d.rating = d.rating === h.n ? null : h.n; // 같은 별을 다시 누르면 지움
     const was = d.status;
     syncStatus(d); // 전체 평점을 매기면 완주 · 지우면 다시 회차 평 기준
-    if (was !== "done" && d.status === "done") toast("완주! 전체 평점을 남겼어요");
+    if (was !== "done" && d.status === "done")
+      toast("완주! 전체 평점을 남겼어요");
     return setAndSave(d, {});
   }
   if (h.act === "note") return openNote(d, h.i); // 회차 메모 열기
   if (h.act === "rewatch") return startRewatch(d);
-  if (h.act === "delrev") return deleteReview(d, { now: true, label: d.watchLabel }, false); // 뒷면 관람평 지우기
+  if (h.act === "delrev")
+    return deleteReview(d, { now: true, label: d.watchLabel }, false); // 뒷면 관람평 지우기
   if (h.act === "all") return openReviewCard(d); // 모든 회차 감상 = 감상 탭과 같은 리뷰 창
   if (h.act === "status") {
     // 상태는 회차 평으로 정해짐 · 평이 하나도 없을 때만 예매 ↔ 보는 중을 바꿀 수 있음
     if (ratedEps(d))
       return toast("모든 화에 평을 남기거나 전체 평점을 매기면 완주가 돼요");
-    setAndSave(d, { status: d.status === "want" ? "watching" : "want", upTo: 0 });
-    return toast(d.status === "want" ? "예매 티켓으로 바꿨어요" : "보는 중으로 바꿨어요");
+    setAndSave(d, {
+      status: d.status === "want" ? "watching" : "want",
+      upTo: 0,
+    });
+    return toast(
+      d.status === "want" ? "예매 티켓으로 바꿨어요" : "보는 중으로 바꿨어요",
+    );
   }
   if (h.act === "link") return openSearchFor(d);
   if (h.act === "kind") {
@@ -5658,7 +6526,6 @@ function toggleLikeDrama(d) {
   toast(d.liked ? `♥ '${d.title}' 좋아요` : "♥ 취소");
 }
 
-
 // ▶ openItem — 연도별 목록에서 한 번 톡: 내 티켓이면 크게 보기, 아니면 발권 미리보기
 function openItem(it) {
   if (it.d) return openTicket(it.d);
@@ -5673,7 +6540,6 @@ function openItem(it) {
     reason: it.reason, // 추천 이유 (취향 추천에서 열었을 때)
   });
 }
-
 
 // ▶ paintAt — 막대 긋기: 손가락이 지나간 회차들의 재미를 그 높이로 (같은 줄 안에서, 건너뛴 칸도 이어서)
 function paintAt(d, R, x, y) {
@@ -5718,7 +6584,11 @@ function syncStatus(d) {
     d.upTo = last;
   }
   if (was !== "done" && d.status === "done" && g)
-    toast(d.rating && !fullyRated(d) ? "완주! 전체 평점을 남겼어요" : "완주! 모든 화에 평을 남겼어요");
+    toast(
+      d.rating && !fullyRated(d)
+        ? "완주! 전체 평점을 남겼어요"
+        : "완주! 모든 화에 평을 남겼어요",
+    );
 }
 
 // ▶ ratedEps / fullyRated — 회차 띠에 평을 남긴 화 수 · 모든 화(16부작이면 16화 전부)에 평을 남겼는지 = '완주'
@@ -5847,7 +6717,7 @@ function removeFromFolder(f, d) {
     const i = d.keys.indexOf(f.kw);
     d.keys.splice(i, 1);
     saveData();
-    toast(gone(d.title), () => {
+    toast(`'${d.title}'을(를) '${f.name}'에서 뺐어요 · 눌러서 되돌리기`, () => {
       d.keys.splice(i, 0, f.kw);
       saveData();
     });
@@ -5855,10 +6725,13 @@ function removeFromFolder(f, d) {
     const i = f.st.ids.indexOf(d.id);
     f.st.ids.splice(i, 1);
     saveData();
-    toast(gone(d.title), () => {
-      f.st.ids.splice(i, 0, d.id);
-      saveData();
-    });
+    toast(
+      `'${d.title}' 폴더에서 뺐어요 (티켓은 그대로) · 눌러서 되돌리기`,
+      () => {
+        f.st.ids.splice(i, 0, d.id);
+        saveData();
+      },
+    );
   }
 }
 
@@ -5935,9 +6808,7 @@ function renderDrop() {
       mk(
         "span",
         t,
-        [d.year, d.network, STATUS[d.status].ko]
-          .filter(Boolean)
-          .join(" · "),
+        [d.year, d.network, STATUS[d.status].ko].filter(Boolean).join(" · "),
       );
       b.elt.addEventListener("click", () => {
         openTicket(d);
@@ -6033,25 +6904,28 @@ function fixBebas(root) {
     const n = tw.currentNode;
     const el = n.parentElement;
     if (!el || el.dataset.k || !/[가-힣]/.test(n.nodeValue)) continue;
-    if (/Bebas/i.test(getComputedStyle(el).fontFamily.split(",")[0])) todo.push(n);
+    if (/Bebas/i.test(getComputedStyle(el).fontFamily.split(",")[0]))
+      todo.push(n);
   }
   todo.forEach((n) => {
     const frag = document.createDocumentFragment();
-    n.nodeValue.split(/([가-힣][가-힣\s]*[가-힣]|[가-힣])/).forEach((part, i) => {
-      if (!part) return;
-      if (i % 2) {
-        const sp = document.createElement("span");
-        sp.dataset.k = "1";
-        sp.textContent = part;
-        Object.assign(sp.style, {
-          fontFamily: "Noto Sans KR, sans-serif",
-          fontWeight: "700",
-          fontSize: "0.8em",
-          letterSpacing: "0",
-        });
-        frag.append(sp);
-      } else frag.append(part);
-    });
+    n.nodeValue
+      .split(/([가-힣][가-힣\s]*[가-힣]|[가-힣])/)
+      .forEach((part, i) => {
+        if (!part) return;
+        if (i % 2) {
+          const sp = document.createElement("span");
+          sp.dataset.k = "1";
+          sp.textContent = part;
+          Object.assign(sp.style, {
+            fontFamily: "Noto Sans KR, sans-serif",
+            fontWeight: "700",
+            fontSize: "0.8em",
+            letterSpacing: "0",
+          });
+          frag.append(sp);
+        } else frag.append(part);
+      });
     n.replaceWith(frag);
   });
 }
@@ -6066,7 +6940,11 @@ function watchBebas() {
       queued = true;
       requestAnimationFrame(run);
     }
-  }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }).observe(document.body, {
+    childList: true,
+    subtree: true,
+    characterData: true,
+  });
   run();
 }
 
@@ -6186,7 +7064,13 @@ function cardTop(card, label) {
   mk("span", top, label);
   const xb = mk("button", top, "✕", "x"); // 닫기 = ✕ 하나만
   xb.elt.setAttribute("aria-label", "닫기");
-  Object.assign(xb.elt.style, { fontSize: "20px", fontFamily: "Noto Sans KR, sans-serif", minWidth: "36px", minHeight: "36px", padding: "0" });
+  Object.assign(xb.elt.style, {
+    fontSize: "20px",
+    fontFamily: "Noto Sans KR, sans-serif",
+    minWidth: "36px",
+    minHeight: "36px",
+    padding: "0",
+  });
   xb.elt.addEventListener("click", closePanel);
 }
 
@@ -6209,14 +7093,24 @@ function openPreview(r) {
       : mk(
           "p",
           pt_,
-          [r.year, r.network, r.eps ? `${r.eps}부작` : "", r.kind].filter(Boolean).join(" · "),
+          [r.year, r.network, r.eps ? `${r.eps}부작` : "", r.kind]
+            .filter(Boolean)
+            .join(" · "),
           "meta",
         );
     // 줄거리 대신: 내가 본 것 중 비슷한 느낌(같은 결)의 드라마 — ♥ · 평점 높은 순으로 3개
-    const me = { title: r.ko || r.title, en: r.title, tvId: r.tvId || r.id, season: r.season };
+    const me = {
+      title: r.ko || r.title,
+      en: r.title,
+      tvId: r.tvId || r.id,
+      season: r.season,
+    };
     // 같은 '느낌 꼬리표'(첫사랑 · 직장 · 타임슬립 …)가 많이 겹치는 순 → 그다음 같은 장르 · ♥ · 평점
     const myMood = moodOf(r.ko || r.title);
-    const seedN = [...(r.ko || r.title || "")].reduce((a, c) => a + c.charCodeAt(0), 0); // 동점일 때 드라마마다 다르게
+    const seedN = [...(r.ko || r.title || "")].reduce(
+      (a, c) => a + c.charCodeAt(0),
+      0,
+    ); // 동점일 때 드라마마다 다르게
     const scored = data.dramas
       .filter((d) => !d.draft && !sameDrama(me, d))
       .map((d, k) => {
@@ -6230,31 +7124,69 @@ function openPreview(r) {
           ((seedN * 7 + k * 13) % 10) / 100;
         return { d, s, share };
       })
-      .filter((q) => q.share.length || (!myMood.length && r.kind && kindOf(q.d) === r.kind))
+      .filter(
+        (q) =>
+          q.share.length ||
+          (!myMood.length && r.kind && kindOf(q.d) === r.kind),
+      )
       .sort((a, b) => b.s - a.s)
       .slice(0, 3);
     const sims = scored.map((q) => q.d);
     const shareTags = [...new Set(scored.flatMap((q) => q.share))].slice(0, 3);
     if (sims.length) {
-      const lab = mk("p", pt_, shareTags.length ? `비슷한 느낌 · ${shareTags.map((t) => "#" + t).join(" ")}` : "비슷한 느낌 · 내가 본 드라마", "meta");
+      const lab = mk(
+        "p",
+        pt_,
+        shareTags.length
+          ? `비슷한 느낌 · ${shareTags.map((t) => "#" + t).join(" ")}`
+          : "비슷한 느낌 · 내가 본 드라마",
+        "meta",
+      );
       Object.assign(lab.elt.style, { marginTop: "10px", fontSize: "12px" });
       const simRow = mk("div", pt_);
-      Object.assign(simRow.elt.style, { display: "flex", gap: "8px", flexWrap: "wrap", marginTop: "4px" });
+      Object.assign(simRow.elt.style, {
+        display: "flex",
+        gap: "8px",
+        flexWrap: "wrap",
+        marginTop: "4px",
+      });
       for (const d of sims) {
         const chip = mk("div", simRow);
         Object.assign(chip.elt.style, {
-          display: "flex", alignItems: "center", gap: "8px", padding: "4px 12px 4px 4px",
-          background: "#FBF8F1", border: "1.5px solid #D8D0C1", borderRadius: "10px", maxWidth: "200px",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "4px 12px 4px 4px",
+          background: "#FBF8F1",
+          border: "1.5px solid #D8D0C1",
+          borderRadius: "10px",
+          maxWidth: "200px",
         });
         const ph = mk("div", chip);
-        Object.assign(ph.elt.style, { width: "28px", height: "40px", borderRadius: "4px", overflow: "hidden", flex: "none" });
+        Object.assign(ph.elt.style, {
+          width: "28px",
+          height: "40px",
+          borderRadius: "4px",
+          overflow: "hidden",
+          flex: "none",
+        });
         thumbOf(ph, d);
         for (const el of ph.elt.querySelectorAll("img,.ph"))
-          Object.assign(el.style, { width: "100%", height: "100%", objectFit: "cover", fontSize: "0", padding: "0" });
+          Object.assign(el.style, {
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            fontSize: "0",
+            padding: "0",
+          });
         const t = mk("span", chip, (d.liked ? "♥ " : "") + d.title);
         Object.assign(t.elt.style, {
-          fontSize: "14px", fontWeight: "700", color: "#17171A",
-          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+          fontSize: "14px",
+          fontWeight: "700",
+          color: "#17171A",
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         });
       }
     } else if (r.kind && !r.manual) {
@@ -6316,7 +7248,11 @@ function openPreview(r) {
     if (r.tvId && !r.eps)
       tvSeasons(r.tvId).then((ss) => {
         if (ss.length > 1) {
-          Object.assign(seasonBox.elt.style, { display: "flex", flexDirection: "column", gap: "14px" });
+          Object.assign(seasonBox.elt.style, {
+            display: "flex",
+            flexDirection: "column",
+            gap: "14px",
+          });
           mk("p", seasonBox, "시즌", "label");
           const sg = mk("div", seasonBox, null, "seg");
           const btns = ss.map((q) => {
@@ -6330,7 +7266,11 @@ function openPreview(r) {
             btns.forEach((b, i) => b.elt.classList.toggle("on", ss[i] === q));
             big.elt.textContent = seasonTitle(koName || r.title, q.n);
             if (metaP)
-              metaP.elt.textContent = [q.year || r.year, r.network, q.eps ? `${q.eps}부작` : ""]
+              metaP.elt.textContent = [
+                q.year || r.year,
+                r.network,
+                q.eps ? `${q.eps}부작` : "",
+              ]
                 .filter(Boolean)
                 .join("  ·  ");
             if (q.eps) total = q.eps;
@@ -6354,7 +7294,8 @@ function openPreview(r) {
         status = st;
         let title = ko ? ko.elt.value.trim() : koName || r.title;
         if (!title) return ko && ko.elt.focus();
-        if (r.manual) season = parseSeason(title).season; // 직접 적기: 제목 끝 숫자 = 시즌
+        if (r.manual)
+          season = parseSeason(title).season; // 직접 적기: 제목 끝 숫자 = 시즌
         else if (season) title = seasonTitle(title, season);
         total = constrain(total, 1, 60);
         const dup = findDup({
@@ -6402,8 +7343,14 @@ function openPreview(r) {
         if (!d.infoTried) setTimeout(fetchMissingInfo, 50);
       }
     };
-    mk("button", row, "예매 · 나중에 볼래요", "btn").elt.addEventListener("click", () => issue("want"));
-    mk("button", row, "보는 중 · 발권", "btn-main grow").elt.addEventListener("click", () => issue("watching"));
+    mk("button", row, "예매 · 나중에 볼래요", "btn").elt.addEventListener(
+      "click",
+      () => issue("want"),
+    );
+    mk("button", row, "보는 중 · 발권", "btn-main grow").elt.addEventListener(
+      "click",
+      () => issue("watching"),
+    );
     if (ko) setTimeout(() => ko.elt.focus(), 50);
   });
 }
@@ -6423,11 +7370,21 @@ function openNote(d, i) {
     const top = mk("div", card, null, "card-top");
     top.elt.style.alignItems = "center";
     const ep = mk("span", top, `EP ${String(i + 1).padStart(2, "0")}`);
-    Object.assign(ep.elt.style, { fontSize: "34px", lineHeight: "1", color: "#f3f1ec" });
+    Object.assign(ep.elt.style, {
+      fontSize: "34px",
+      lineHeight: "1",
+      color: "#f3f1ec",
+    });
     const xb = mk("button", top, "✕", "x"); // 닫기 = ✕ 하나만
-  xb.elt.setAttribute("aria-label", "닫기");
-  Object.assign(xb.elt.style, { fontSize: "20px", fontFamily: "Noto Sans KR, sans-serif", minWidth: "36px", minHeight: "36px", padding: "0" });
-  xb.elt.addEventListener("click", closePanel);
+    xb.elt.setAttribute("aria-label", "닫기");
+    Object.assign(xb.elt.style, {
+      fontSize: "20px",
+      fontFamily: "Noto Sans KR, sans-serif",
+      minWidth: "36px",
+      minHeight: "36px",
+      padding: "0",
+    });
+    xb.elt.addEventListener("click", closePanel);
     // 드라마 제목 · 그 화 재미 (본문 글꼴 한 줄)
     const sub = mk("p", card, null, "meta");
     sub.elt.style.margin = "-4px 0 2px";
@@ -6449,7 +7406,8 @@ function openNote(d, i) {
       borderRadius: "0",
       padding: "0 2px",
       background: "transparent",
-      backgroundImage: "linear-gradient(to bottom, transparent 27px, rgba(243,241,236,0.16) 27px)",
+      backgroundImage:
+        "linear-gradient(to bottom, transparent 27px, rgba(243,241,236,0.16) 27px)",
       backgroundSize: "100% 28px",
       backgroundAttachment: "local",
       caretColor: acc,
@@ -6470,7 +7428,11 @@ function openNote(d, i) {
       d.touched = Date.now();
       saveData();
       closePanel();
-      toast(t ? `EP ${String(i + 1).padStart(2, "0")} 메모를 저장했어요` : `EP ${String(i + 1).padStart(2, "0")} 메모를 지웠어요`);
+      toast(
+        t
+          ? `EP ${String(i + 1).padStart(2, "0")} 메모를 저장했어요`
+          : `EP ${String(i + 1).padStart(2, "0")} 메모를 지웠어요`,
+      );
     });
     setTimeout(() => area.elt.focus(), 50);
   });
@@ -6562,20 +7524,51 @@ function openReviewCard(d) {
     x.elt.addEventListener("click", closePanel);
 
     // 정보 줄 | 평점
-    const head = css(mk("div", card), { display: "flex", alignItems: "center", gap: "12px", padding: "12px 18px 10px" });
-    const ht = css(mk("div", head), { flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "6px" });
-    css(mk("p", ht, [d.year, d.network, `${d.eps}부작`, kindOf(d), STATUS[d.status].ko].filter(Boolean).join(" · ")), {
-      margin: "0",
-      fontSize: "12px",
-      color: SUB,
+    const head = css(mk("div", card), {
+      display: "flex",
+      alignItems: "center",
+      gap: "12px",
+      padding: "12px 18px 10px",
     });
+    const ht = css(mk("div", head), {
+      flex: "1",
+      minWidth: "0",
+      display: "flex",
+      flexDirection: "column",
+      gap: "6px",
+    });
+    css(
+      mk(
+        "p",
+        ht,
+        [d.year, d.network, `${d.eps}부작`, kindOf(d), STATUS[d.status].ko]
+          .filter(Boolean)
+          .join(" · "),
+      ),
+      {
+        margin: "0",
+        fontSize: "12px",
+        color: SUB,
+      },
+    );
     // 다시 본 드라마: 회차마다 평점이 어떻게 바뀌었는지 (1회차 ★7 → 2회차 ★9)
     const rated = ws.filter((q) => q.rating);
     if (ws.length > 1 && rated.length > 1) {
-      const ch = css(mk("p", ht), { margin: "0", fontSize: "12px", color: SUB, display: "flex", flexWrap: "wrap", gap: "4px", alignItems: "center" });
+      const ch = css(mk("p", ht), {
+        margin: "0",
+        fontSize: "12px",
+        color: SUB,
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "4px",
+        alignItems: "center",
+      });
       rated.forEach((q, k) => {
         if (k) mk("span", ch, "→");
-        css(mk("span", ch, `${q.label} ★${q.rating}`), { fontWeight: q.now ? "700" : "400", color: q.now ? INK : SUB });
+        css(mk("span", ch, `${q.label} ★${q.rating}`), {
+          fontWeight: q.now ? "700" : "400",
+          color: q.now ? INK : SUB,
+        });
       });
       const diff = rated[rated.length - 1].rating - rated[0].rating;
       if (diff)
@@ -6588,17 +7581,50 @@ function openReviewCard(d) {
           color: INK,
         });
     }
-    const rr = css(mk("div", head), { display: "flex", alignItems: "baseline", gap: "3px", flexShrink: "0" });
-    if (d.liked) css(mk("span", rr, "♥"), { color: HEART, fontSize: "14px", marginRight: "6px" });
+    const rr = css(mk("div", head), {
+      display: "flex",
+      alignItems: "baseline",
+      gap: "3px",
+      flexShrink: "0",
+    });
+    if (d.liked)
+      css(mk("span", rr, "♥"), {
+        color: HEART,
+        fontSize: "14px",
+        marginRight: "6px",
+      });
     const LR = lastRating(d); // 지금 회차 평점이 없으면 지난 회차 평점 (흐리게 + 몇 회차인지)
-    css(mk("span", rr, LR.r ? `${LR.r}` : "–"), { fontFamily: LABF, fontSize: "34px", lineHeight: "0.9", color: LR.r ? (LR.label ? "#6B665E" : INK) : "#B9B1A2" });
-    css(mk("span", rr, LR.label ? `/10 · ${LR.label}` : "/10"), { fontFamily: LABF, fontSize: "14px", color: "#8C877E" });
+    css(mk("span", rr, LR.r ? `${LR.r}` : "–"), {
+      fontFamily: LABF,
+      fontSize: "34px",
+      lineHeight: "0.9",
+      color: LR.r ? (LR.label ? "#6B665E" : INK) : "#B9B1A2",
+    });
+    css(mk("span", rr, LR.label ? `/10 · ${LR.label}` : "/10"), {
+      fontFamily: LABF,
+      fontSize: "14px",
+      color: "#8C877E",
+    });
 
     // 절취선 (양옆 반달 홈)
     const perf = css(mk("div", card), { position: "relative", height: "16px" });
-    css(mk("div", perf), { position: "absolute", left: "14px", right: "14px", top: "7px", borderTop: "1.5px dashed #C8C1B3" });
+    css(mk("div", perf), {
+      position: "absolute",
+      left: "14px",
+      right: "14px",
+      top: "7px",
+      borderTop: "1.5px dashed #C8C1B3",
+    });
     ["left", "right"].forEach((side) =>
-      css(mk("div", perf), { position: "absolute", [side]: "-8px", top: "0", width: "16px", height: "16px", borderRadius: "50%", background: "rgba(17,17,19,0.85)" }),
+      css(mk("div", perf), {
+        position: "absolute",
+        [side]: "-8px",
+        top: "0",
+        width: "16px",
+        height: "16px",
+        borderRadius: "50%",
+        background: "rgba(17,17,19,0.85)",
+      }),
     );
 
     const edits = []; // 고칠 수 있는 관람평들 { q, el }
@@ -6640,75 +7666,53 @@ function openReviewCard(d) {
     };
     panelBeforeClose = () => saveAll(false); // ✕ · 바깥 톡으로 닫아도 고친 건 저장
     // 관람평: 1회차부터 차례로 (감상 카드와 같은 순서) · 왼쪽 회차 꼬리표 | 오른쪽 쓴 그대로 + 그때 평점
-    const body = css(mk("div", card), { padding: "4px 18px 0", display: "flex", flexDirection: "column" });
-    ws.slice()
-      .forEach((q, k) => {
-        const item = css(mk("div", body), {
-          display: "flex",
-          gap: "12px",
-          padding: "12px 0",
-          borderTop: k ? "1px dotted #CFC7B8" : "none",
-        });
-        css(mk("span", item, q.label || "1회차"), {
-          flexShrink: "0",
-          alignSelf: "flex-start",
-          padding: "2px 8px",
-          borderRadius: "9px",
-          fontSize: "11px",
-          fontWeight: "700",
-          background: q.now ? acc : "#E2DBCD",
-          color: INK,
-        });
-        const col = css(mk("div", item), { flex: "1", minWidth: "0", display: "flex", flexDirection: "column", gap: "4px" });
-        // 관람평: 보이는 그대로 바로 눌러서 고침 (글 칸이 따로 안 생김 · 아래 '저장' = 다 저장)
-        const txt = css(mk("p", col), {
-          margin: "0",
-          whiteSpace: "pre-wrap",
-          fontSize: "14px",
-          lineHeight: "1.6",
-          color: q.now ? INK : "#4A4640",
-          cursor: "text",
-        });
-        mk("span", txt, "“");
-        const ed = mk("span", txt, q.review || "", "rv-edit");
-        ed.elt.contentEditable = "true";
-        ed.elt.spellcheck = false;
-        ed.elt.dataset.ph = "관람평 없음 · 눌러서 쓰기";
-        css(ed, { outline: "none", borderRadius: "3px" });
-        mk("span", txt, "”");
-        txt.elt.addEventListener("click", (e) => {
-          if (e.target !== ed.elt) {
-            ed.elt.focus();
-            const r = document.createRange();
-            r.selectNodeContents(ed.elt);
-            r.collapse(false);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(r);
-          }
-        });
-        ed.elt.addEventListener("input", () => {
-          if (ed.elt.textContent.length > REVIEW_MAX) ed.elt.textContent = ed.elt.textContent.slice(0, REVIEW_MAX);
-          dirty = true;
-        });
-        edits.push({ q, el: ed.elt });
-        const sc = (q.scores || []).filter((v) => v !== null && v !== undefined);
-        const avg = sc.length ? Math.round((sc.reduce((a, b) => a + b, 0) / sc.length) * 10) : null;
-        const meta = [q.rating ? `★ ${q.rating}` : "", avg !== null ? `회차 평균 ${avg}/10` : ""].filter(Boolean).join(" · ");
-        const mrow = css(mk("div", col), { display: "flex", alignItems: "center", gap: "10px" });
-        if (meta) css(mk("p", mrow, meta), { margin: "0", fontSize: "11px", color: "#8C877E" });
-        // 고치기: 누르면 위 관람평 끝에 커서 (글자를 바로 눌러도 됨)
-        const eb = css(mk("button", mrow, q.review ? "고치기" : "쓰기"), {
-          border: "none",
-          background: "transparent",
-          color: "#8C877E",
-          fontSize: "11px",
-          textDecoration: "underline",
-          cursor: "pointer",
-          padding: "0",
-          minHeight: "0",
-        });
-        eb.elt.addEventListener("click", () => {
+    const body = css(mk("div", card), {
+      padding: "4px 18px 0",
+      display: "flex",
+      flexDirection: "column",
+    });
+    ws.slice().forEach((q, k) => {
+      const item = css(mk("div", body), {
+        display: "flex",
+        gap: "12px",
+        padding: "12px 0",
+        borderTop: k ? "1px dotted #CFC7B8" : "none",
+      });
+      css(mk("span", item, q.label || "1회차"), {
+        flexShrink: "0",
+        alignSelf: "flex-start",
+        padding: "2px 8px",
+        borderRadius: "9px",
+        fontSize: "11px",
+        fontWeight: "700",
+        background: q.now ? acc : "#E2DBCD",
+        color: INK,
+      });
+      const col = css(mk("div", item), {
+        flex: "1",
+        minWidth: "0",
+        display: "flex",
+        flexDirection: "column",
+        gap: "4px",
+      });
+      // 관람평: 보이는 그대로 바로 눌러서 고침 (글 칸이 따로 안 생김 · 아래 '저장' = 다 저장)
+      const txt = css(mk("p", col), {
+        margin: "0",
+        whiteSpace: "pre-wrap",
+        fontSize: "14px",
+        lineHeight: "1.6",
+        color: q.now ? INK : "#4A4640",
+        cursor: "text",
+      });
+      mk("span", txt, "“");
+      const ed = mk("span", txt, q.review || "", "rv-edit");
+      ed.elt.contentEditable = "true";
+      ed.elt.spellcheck = false;
+      ed.elt.dataset.ph = "관람평 없음 · 눌러서 쓰기";
+      css(ed, { outline: "none", borderRadius: "3px" });
+      mk("span", txt, "”");
+      txt.elt.addEventListener("click", (e) => {
+        if (e.target !== ed.elt) {
           ed.elt.focus();
           const r = document.createRange();
           r.selectNodeContents(ed.elt);
@@ -6716,8 +7720,56 @@ function openReviewCard(d) {
           const sel = window.getSelection();
           sel.removeAllRanges();
           sel.addRange(r);
-        });
+        }
       });
+      ed.elt.addEventListener("input", () => {
+        if (ed.elt.textContent.length > REVIEW_MAX)
+          ed.elt.textContent = ed.elt.textContent.slice(0, REVIEW_MAX);
+        dirty = true;
+      });
+      edits.push({ q, el: ed.elt });
+      const sc = (q.scores || []).filter((v) => v !== null && v !== undefined);
+      const avg = sc.length
+        ? Math.round((sc.reduce((a, b) => a + b, 0) / sc.length) * 10)
+        : null;
+      const meta = [
+        q.rating ? `★ ${q.rating}` : "",
+        avg !== null ? `회차 평균 ${avg}/10` : "",
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      const mrow = css(mk("div", col), {
+        display: "flex",
+        alignItems: "center",
+        gap: "10px",
+      });
+      if (meta)
+        css(mk("p", mrow, meta), {
+          margin: "0",
+          fontSize: "11px",
+          color: "#8C877E",
+        });
+      // 고치기: 누르면 위 관람평 끝에 커서 (글자를 바로 눌러도 됨)
+      const eb = css(mk("button", mrow, q.review ? "고치기" : "쓰기"), {
+        border: "none",
+        background: "transparent",
+        color: "#8C877E",
+        fontSize: "11px",
+        textDecoration: "underline",
+        cursor: "pointer",
+        padding: "0",
+        minHeight: "0",
+      });
+      eb.elt.addEventListener("click", () => {
+        ed.elt.focus();
+        const r = document.createRange();
+        r.selectNodeContents(ed.elt);
+        r.collapse(false);
+        const sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+      });
+    });
 
     // 회차 메모: 티켓 색으로 눈에 띄게 (EP 번호 = 티켓 색 꼬리표 · 메모 = 진한 글씨)
     const notes = Object.keys(d.notes)
@@ -6725,7 +7777,9 @@ function openReviewCard(d) {
       .filter((i) => i < d.eps)
       .sort((a, b) => a - b);
     if (notes.length) {
-      const tint = lerpColor(color(acc), color(PAPER), 0.78).toString("#rrggbb");
+      const tint = lerpColor(color(acc), color(PAPER), 0.78).toString(
+        "#rrggbb",
+      );
       const mb = css(mk("div", card), {
         margin: "4px 18px 0",
         padding: "12px 14px",
@@ -6737,8 +7791,18 @@ function openReviewCard(d) {
         gap: "8px",
       });
       // 머리줄: EP MEMO · 개수 | 오른쪽 '고치기' 하나 (누르면 첫 메모 끝에 커서 · 메모 글자를 바로 눌러도 됨)
-      const mh = css(mk("div", mb), { display: "flex", alignItems: "baseline", justifyContent: "space-between" });
-      css(mk("p", mh, `EP MEMO · ${notes.length}`), { margin: "0", fontFamily: LABF, fontSize: "15px", letterSpacing: "0.06em", color: INK });
+      const mh = css(mk("div", mb), {
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+      });
+      css(mk("p", mh, `EP MEMO · ${notes.length}`), {
+        margin: "0",
+        fontFamily: LABF,
+        fontSize: "15px",
+        letterSpacing: "0.06em",
+        color: INK,
+      });
       const mfix = css(mk("button", mh, "고치기"), {
         border: "none",
         background: "transparent",
@@ -6762,7 +7826,11 @@ function openReviewCard(d) {
         sel.addRange(r);
       });
       notes.forEach((i) => {
-        const row = css(mk("div", mb), { display: "flex", gap: "10px", alignItems: "flex-start" });
+        const row = css(mk("div", mb), {
+          display: "flex",
+          gap: "10px",
+          alignItems: "flex-start",
+        });
         css(mk("span", row, `EP ${String(i + 1).padStart(2, "0")}`), {
           flexShrink: "0",
           padding: "1px 8px",
@@ -6773,7 +7841,18 @@ function openReviewCard(d) {
           lineHeight: "1.4",
           color: INK,
         });
-        const me = css(mk("span", row, d.notes[i], "rv-edit"), { fontSize: "14px", lineHeight: "1.5", fontWeight: "500", color: INK, whiteSpace: "pre-wrap", outline: "none", borderRadius: "3px", flex: "1", minWidth: "0", cursor: "text" });
+        const me = css(mk("span", row, d.notes[i], "rv-edit"), {
+          fontSize: "14px",
+          lineHeight: "1.5",
+          fontWeight: "500",
+          color: INK,
+          whiteSpace: "pre-wrap",
+          outline: "none",
+          borderRadius: "3px",
+          flex: "1",
+          minWidth: "0",
+          cursor: "text",
+        });
         me.elt.contentEditable = "true";
         me.elt.spellcheck = false;
         me.elt.dataset.ph = "(비우면 이 메모는 지워져요)";
@@ -6783,7 +7862,11 @@ function openReviewCard(d) {
     }
 
     // 버튼
-    const row = css(mk("div", card), { display: "flex", gap: "8px", padding: "14px 18px 16px" });
+    const row = css(mk("div", card), {
+      display: "flex",
+      gap: "8px",
+      padding: "14px 18px 16px",
+    });
     const b1 = css(mk("button", row, "티켓 열기"), {
       minHeight: "40px",
       padding: "0 16px",
@@ -6824,7 +7907,10 @@ function openReviewCard(d) {
 // ▶ openAll — 모든 감상: 볼 때마다 남긴 감상을 최근 순서로
 function openAll(d) {
   openCard((card) => {
-    cardTop(card, `ALL REVIEWS · ${d.watchLabel || watches(d).length + "회차"}까지`);
+    cardTop(
+      card,
+      `ALL REVIEWS · ${d.watchLabel || watches(d).length + "회차"}까지`,
+    );
     mk("p", card, d.title, "big");
     watches(d)
       .slice()
@@ -6863,10 +7949,13 @@ function deleteFolder(st) {
   data.sets.splice(i, 1);
   saveData();
   folderSel = null;
-  toast(`'${st.name}' 폴더를 지웠어요 (티켓은 그대로) · 눌러서 되돌리기`, () => {
-    data.sets.splice(i, 0, st);
-    saveData();
-  });
+  toast(
+    `'${st.name}' 폴더를 지웠어요 (티켓은 그대로) · 눌러서 되돌리기`,
+    () => {
+      data.sets.splice(i, 0, st);
+      saveData();
+    },
+  );
 }
 
 // ▶ openAddToFolder — 연 폴더에 바로 티켓 넣기: 아직 안 든 티켓을 포스터로 골라서 (여러 장 한 번에)
@@ -6877,7 +7966,12 @@ function openAddToFolder(f) {
     card.elt.style.maxWidth = "520px";
     cardTop(card, "ADD TICKETS");
     mk("p", card, f.name, "big");
-    mk("p", card, "고른 티켓이 이 폴더에 들어가요 (다른 폴더에도 그대로 있어요)", "meta");
+    mk(
+      "p",
+      card,
+      "고른 티켓이 이 폴더에 들어가요 (다른 폴더에도 그대로 있어요)",
+      "meta",
+    );
     const q = mk("input", card, null, "field");
     q.elt.placeholder = "제목 · 연도 · 방송사로 찾기";
     const inIt = new Set(f.members.map((d) => d.id));
@@ -6887,13 +7981,20 @@ function openAddToFolder(f) {
     const picked = new Set();
     const lab = mk("p", card, "", "label");
     const gbox = mk("div", card);
-    Object.assign(gbox.elt.style, { maxHeight: "38vh", overflowY: "auto", padding: "2px", borderRadius: "10px" });
+    Object.assign(gbox.elt.style, {
+      maxHeight: "38vh",
+      overflowY: "auto",
+      padding: "2px",
+      borderRadius: "10px",
+    });
     const grid = pickGrid(gbox, 76); // 작게 (한눈에 많이)
     const row = mk("div", card, null, "row");
     const ok = mk("button", row, "", "btn-main grow");
     const refresh = () => {
       lab.elt.textContent = `넣을 티켓 · ${picked.size}장 골랐어요`;
-      ok.elt.textContent = picked.size ? `${picked.size}장 넣기` : "티켓을 골라요";
+      ok.elt.textContent = picked.size
+        ? `${picked.size}장 넣기`
+        : "티켓을 골라요";
       ok.elt.disabled = !picked.size;
       ok.elt.style.opacity = picked.size ? 1 : 0.5;
     };
@@ -6909,7 +8010,12 @@ function openAddToFolder(f) {
             .includes(t),
       );
       if (!list.length)
-        mk("p", grid, cand.length ? "찾는 티켓이 없어요" : "모든 티켓이 이미 들어 있어요", "meta");
+        mk(
+          "p",
+          grid,
+          cand.length ? "찾는 티켓이 없어요" : "모든 티켓이 이미 들어 있어요",
+          "meta",
+        );
       list.forEach((d) => {
         const b = pickBtn(grid, d);
         if (picked.has(d.id)) b.elt.classList.add("on");
@@ -6942,7 +8048,10 @@ function openAddToFolder(f) {
 
 function openFolderCard(st, seed) {
   openCard((card) => {
-    ticketSkin(card, st ? st.color : ACCENTS[data.sets.length % ACCENTS.length]);
+    ticketSkin(
+      card,
+      st ? st.color : ACCENTS[data.sets.length % ACCENTS.length],
+    );
     card.elt.style.maxWidth = "520px";
     cardTop(card, st ? "MY FOLDER" : "NEW FOLDER");
     if (seed.length)
@@ -6959,14 +8068,12 @@ function openFolderCard(st, seed) {
     name.elt.value = st ? st.name : "";
     // 추천 이름: 자주 쓰는 이름
     const chips = mk("div", card, null, "chips");
-    FOLDER_NAMES
-      .slice(0, 6)
-      .forEach((t) => {
-        mk("button", chips, t).elt.addEventListener(
-          "click",
-          () => (name.elt.value = t),
-        );
-      });
+    FOLDER_NAMES.slice(0, 6).forEach((t) => {
+      mk("button", chips, t).elt.addEventListener(
+        "click",
+        () => (name.elt.value = t),
+      );
+    });
     mk("p", card, "색", "label");
     const sw = mk("div", card, null, "swatches");
     let col = st ? st.color : ACCENTS[data.sets.length % ACCENTS.length];
@@ -6998,7 +8105,8 @@ function openFolderCard(st, seed) {
       .filter((d) => d.title)
       .sort(
         (a, b) =>
-          picked.has(b.id) - picked.has(a.id) || (b.touched || 0) - (a.touched || 0),
+          picked.has(b.id) - picked.has(a.id) ||
+          (b.touched || 0) - (a.touched || 0),
       ); // 처음 열 때 이미 든 티켓이 앞에
     const drawPick = () => {
       lab.elt.textContent = `넣을 티켓 · ${picked.size}장 골랐어요`;
@@ -7007,7 +8115,10 @@ function openFolderCard(st, seed) {
       const list = order.filter(
         (d) =>
           !t ||
-          [d.title, d.en, d.year, d.network, kindOf(d)].join(" ").toLowerCase().includes(t),
+          [d.title, d.en, d.year, d.network, kindOf(d)]
+            .join(" ")
+            .toLowerCase()
+            .includes(t),
       );
       if (!list.length) mk("p", grid, "찾는 티켓이 없어요", "meta");
       list.forEach((d) => {
@@ -7051,10 +8162,4069 @@ function openFolderCard(st, seed) {
   });
 }
 
-
 /* =========================================================
    STARTER — 처음 여는 컴퓨터에서 보일 티켓 (내 일지에서 고른 76장 · 폴더 5개)
    저장된 게 없을 때만 쓰고, 그다음부터 고친 건 그 컴퓨터 브라우저에 따로 저장돼요
 ========================================================= */
 const STARTER_ID = "75-1025b"; // STARTER를 새로 담으면 이 이름도 바꿈 → 모든 컴퓨터가 새 STARTER로 다시 시작
-const STARTER = {"dramas": [{"id": "1792139551781c936", "title": "나의 아저씨", "en": "My Mister", "tvId": 33840, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/150/375701.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/150/375701.jpg", "year": "2018", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Family"], "summary": "A man in his 40's withstands the weight of life. A woman in her 20's goes through different experiences, but also withstands the weight of her life. The man and woman get together to help each other.", "premiered": "2018-03-21", "ended": "2018-05-17"}, "kind": "휴먼", "status": "done", "upTo": 16, "scores": [0.3, 0.4, 0.5, 0.5, 0.9, 0.7, 0.3, 0.1, null, null, null, null, null, null, null, null], "review": "깊이 있는 드라마고 연기력도 좋지만 드라마 자체가 너무 우울함 (이런 류의 드라마를 좋아한다면 추천)", "rating": 5, "keys": ["인생작", "눈물버튼", "여운"], "liked": false, "watchLabel": "1회차", "watchStart": 1792673980814, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792681207847, "infoTried": true}, {"id": "1792139551781956f", "title": "눈물의 여왕", "en": "Queen of Tears", "tvId": 67633, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/507/1269260.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/507/1269260.jpg", "year": "2024", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Romance"], "summary": "Baek Hyun Woo, who is the pride of the village of Yongduri, is the legal director of the conglomerate Queens Group, while chaebol heiress Hong Hae In is the \"queen\" of Queens Group's department stores. Queen of Tears will tell the miraculous, thrilling, and humorous love story of this married couple, who manage to survive a crisis and stay together against all odds.", "premiered": "2024-03-09", "ended": "2024-04-28"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "김지원도 존예", "rating": null, "keys": ["설렘", "OST맛집"], "liked": true, "watchLabel": "4회차", "watchStart": 1792167817257, "history": [{"label": "1회차", "start": 1709996400000, "end": 1712674800000, "rating": 8, "upTo": 16, "scores": [0.7, 0.8, 0.7, 0.7, 0.8, 0.7, 0.9, 1, 0.8, 0.7, 0.7, 0.8, 0.7, 0.9, 0.8, 0.9], "review": "8화 엔딩 미쳤다. 중반은 좀 늘어짐"}, {"label": "2회차", "start": 1791558000000, "end": 1792167489619, "scores": [0.8, 0.8, 0.7, 0.8, 0.9, 0.8, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 9, "upTo": 16}, {"label": "3회차", "start": 1792167489619, "end": 1792167817257, "scores": [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.5], "review": "김수현 존잘", "rating": 9, "upTo": 16}], "notes": {"7": "엔딩 직전 대사"}, "times": {"7": "1:08:30"}, "savedAt": 1792139551781, "touched": 1792682027676, "infoTried": true}, {"id": "17921395517819aee", "title": "정년이", "en": "Jeongnyeon: The Star Is Born", "tvId": 79498, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/535/1337651.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/535/1337651.jpg", "year": "2024", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "Music"], "summary": "Jeong Nyeon has no money or education, but she is a Mokpo girl with a talent for singing! Her dream is to join a women's traditional theater company, and make it big. But she has a lot to learn and a long way to go before becoming a lead actor. Will Jeong Nyeon achieve her dream of becoming a big star and getting rich?", "premiered": "2024-10-12", "ended": "2024-11-17"}, "kind": "휴먼", "status": "watching", "upTo": 8, "scores": [0.6, 0.7, 0.6, 0.8, 0.9, 0.7, 0.8, 0.6, null, null, null, null], "review": "", "rating": null, "keys": ["성장"], "liked": false, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {"3": "첫 무대, 소름"}, "times": {"3": "52:10"}, "savedAt": 1792139551781, "touched": 1792926997908, "infoTried": true}, {"id": "179213955178193ea", "title": "선재 업고 튀어", "en": "Lovely Runner", "tvId": 75084, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/510/1276542.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/510/1276542.jpg", "year": "2024", "network": "tvN", "eps": 16, "info": {"genres": ["Comedy", "Fantasy", "Romance"], "summary": "Im Sol is devastated by the sudden and tragic death of her idol Ryu Sun-Jae, a former swimmer turned K-pop star. But in the midst of her grief, she magically travels back to 2008 - when Sun-Jae was only 19 years old! Sol is delighted that she can help him escape his sad future fate, and makes it her mission to change the future ... and maybe even find true love in the process. Will her attempts to change the course of the past succeed - or could they have unexpected consequences?", "premiered": "2024-04-08", "ended": "2024-05-28"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [0.8, 0.9, 0.7, 0.8, 0.7, 0.8, 0.9, 1, 0.8, 0.7, 0.8, 0.9, 0.7, 0.8, 0.9, 1], "review": "비 오는 날 우산 장면 = 레전드", "rating": 9, "keys": ["설렘", "OST맛집"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {"7": "타임슬립 반전"}, "times": {}, "savedAt": 1792139551781, "touched": 1792211243698, "infoTried": true}, {"id": "1792139551781a01d", "title": "폭싹 속았수다", "en": "When Life Gives You Tangerines", "tvId": 74399, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/553/1383936.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/553/1383936.jpg", "year": "2025", "network": "Netflix", "eps": 16, "info": {"genres": ["Drama", "Romance"], "summary": "In Jeju, a spirited girl and a steadfast boy's island story blossoms into a lifelong tale of setbacks and triumphs --- proving love endures across time.", "premiered": "2025-03-07", "ended": "2025-03-28"}, "kind": "가족", "status": "done", "upTo": 16, "scores": [0.8, 0.8, 0.9, 1, 0.8, 0.8, 0.7, 0.9, 0.8, 0.8, 0.9, 1, 0.8, 0.8, 0.9, 0.9], "review": "휴지 필수. 엄마한테 전화하게 되는 드라마", "rating": 10, "keys": ["인생작", "눈물버튼"], "liked": false, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792139551781, "infoTried": true}, {"id": "1792139551781d3bd", "title": "무빙", "en": "Moving", "tvId": 64111, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/472/1181779.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/472/1181779.jpg", "year": "2023", "network": "Disney+", "eps": 20, "info": {"genres": ["Drama", "Action", "Fantasy"], "summary": "Set in modern-day Korea, Moving tells the story of a group of superpowered individuals who hide their true abilities from the world in order to protect their families from harm and exploitation.", "premiered": "2023-08-09", "ended": ""}, "kind": "판타지", "status": "watching", "upTo": 12, "scores": [0.7, 0.7, 0.6, 0.6, 0.7, 0.8, 0.9, 0.7, 0.9, 1, 0.8, 0.7, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": ["도파민", "밤샘정주행"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792139551781, "infoTried": true}, {"id": "17921395517812c42", "title": "비밀의 숲", "en": "Stranger", "tvId": 28517, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/265/662957.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/265/662957.jpg", "year": "2017", "network": "tvN", "eps": 16, "info": {"genres": ["Crime", "Mystery", "Legal"], "summary": "Though he is rational, a childhood brain surgery leaves prosecutor Hwang Shi Mok to lack emotion. Cold and lonely, he's one of the only prosecutors not involved in corruption. When he meets Police Lieutenant Han Yeo Jin at a murder crime scene, they join forces to eradicate corruption at the prosecutor's office and solve a serial murder case.", "premiered": "2017-06-10", "ended": "2020-10-04"}, "kind": "스릴러", "status": "watching", "upTo": 1, "scores": [1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792673386635, "infoTried": true}, {"id": "1792139551781f9d4", "title": "미스터 션샤인", "en": "Mr. Sunshine", "tvId": 33837, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/159/399228.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/159/399228.jpg", "year": "2018", "network": "tvN", "eps": 24, "info": {"genres": ["Drama", "Romance", "History"], "summary": "During the United States expedition to Joseon in 1871, a boy from Joseon boards an American warship and goes to America. As an adult, he returns to his home country as an American soldier stationed in the country", "premiered": "2018-07-07", "ended": "2018-09-30"}, "kind": "사극", "status": "done", "upTo": 24, "scores": [0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.6, 0.8, 0.7, 0.6, 0.6, 0.4, 0.4, 0.4, 0.2, 0.8, 0.8, 0.6, 0.3], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792670596456, "infoTried": true}, {"id": "1792139551781c144", "title": "응답하라 1988", "en": "Reply 1988", "tvId": 7269, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/27/67574.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/27/67574.jpg", "year": "2015", "network": "tvN", "eps": 20, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "A drama about a small cluster of neighboring families set in 1988.", "premiered": "2015-11-06", "ended": "2016-01-16"}, "kind": "코미디", "status": "done", "upTo": 20, "scores": [0.2, 0.2, 0.1, 0.1, 0.1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 10, "keys": ["인생작", "가족", "힐링"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792671916163, "infoTried": true}, {"id": "1792139551781d3cd", "title": "도깨비", "en": "Guardian: The Lonely and Great God", "tvId": 16150, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330901.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/532/1330901.jpg", "year": "2016", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "Guardians are always whom we fear. Surely not this time. A guardian living in Seoul in 2016 is the sexiest chick magnet. More than a hundred years old in reality, he hangs out with the young. But not many people know that he is hollow inside. He has been searching for the ‘goblin bride' for decades, but she is no where to be found. Then one day, he keeps getting summoned by Eun-tak. There, he sees the Reaper, not knowing that they are to become roommates. That's where the story begins. A Goblin, trying to protect a girl who should have been dead a long time ago. A Reaper, desperately wanting to take the girl to complete his task.", "premiered": "2016-12-02", "ended": "2017-01-21"}, "kind": "판타지", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 9, "keys": ["설렘", "OST맛집"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1789461151781, "infoTried": true}, {"id": "179213955178157b3", "title": "슬기로운 감빵생활", "en": "Prison Playbook", "tvId": 33280, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/134/336265.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/134/336265.jpg", "year": "2017", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Comedy"], "summary": "Prison Playbook is a black comedy in which we follow a baseball player and a variety of people experience prison life. The drama will share the lives and stories behind these prisoners as well as events that take place there.", "premiered": "2017-11-22", "ended": "2018-01-18"}, "kind": "휴먼", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 9, "keys": ["힐링", "밤샘정주행"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1789374751781, "infoTried": true}, {"id": "179213955178142c3", "title": "사랑의 불시착", "en": "Crash Landing on You", "tvId": 42756, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/235/588087.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/235/588087.jpg", "year": "2019", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "Crash Landing on You follows a wealthy heiress named Yoon Se Ri, who, while paragliding, is forced to land in North Korea due to high winds. A North Korean officer named Ri Jung Hyuk hides and protects her, and in doing so, comes to love her", "premiered": "2019-12-14", "ended": "2020-02-16"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 9, "keys": ["설렘"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1789288351781, "infoTried": true}, {"id": "179213955178166e2", "title": "동백꽃 필 무렵", "en": "When the Camellia Blooms", "tvId": 41817, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/210/526021.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/210/526021.jpg", "year": "2019", "network": "KBS2", "eps": 20, "info": {"genres": ["Comedy", "Romance", "Thriller"], "summary": "When the Camellia Blooms tells the story of Dong Baek, owner of a bar named Camellia, whose life changes after she encounters three men including a good man, a bad man and a cheap man.", "premiered": "2019-09-18", "ended": "2019-11-21"}, "kind": "휴먼", "status": "done", "upTo": 20, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 10, "keys": ["눈물버튼", "힐링"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1792587988193, "infoTried": true}, {"id": "17921395517817345", "title": "슬기로운 의사생활", "en": "Hospital Playlist", "tvId": 46260, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/323/807792.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/323/807792.jpg", "year": "2020", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "Medical"], "summary": "In Hospital Playlist we follow the lives of five ordinary doctors who all attended the same medical school in 1999 are now friends and work together at the same hospital.", "premiered": "2020-03-12", "ended": "2021-09-16"}, "kind": "메디컬", "status": "done", "upTo": 12, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 9, "keys": ["힐링", "OST맛집"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1789115551781, "infoTried": true}, {"id": "17921395517813fdf", "title": "그 해 우리는", "en": "Our Beloved Summer", "tvId": 58766, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/376/941045.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/376/941045.jpg", "year": "2021", "network": "SBS", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "A romance comedy that portrays the complicated feelings of a couple that breaks up saying, \"It was an awful time with you, and let's never meet again!\" However, the documentary they filmed 10 years ago in high school suddenly gains popularity, and they're forcibly brought together in front of the camera once more.", "premiered": "2021-12-06", "ended": "2022-01-25"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 8, "keys": ["설렘", "여운"], "liked": true, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1789029151781, "infoTried": true}, {"id": "1792139551781b879", "title": "스물다섯 스물하나", "en": "Twenty-Five Twenty-One", "tvId": 59683, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/390/977086.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/390/977086.jpg", "year": "2022", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "Twenty-Five Twenty-One depicts a story from 1998 to 2021. In 1998, twenty-two and eighteen meet for the first time in an uneasy year as the whole world shook and called each others' name and when they became twenty-three and nineteen, they hurt each other. In the year of twenty-four and twenty, they relied on each other, and they loved only when they were twenty-five and twenty-one.", "premiered": "2022-02-12", "ended": "2022-04-03"}, "kind": "사극", "status": "done", "upTo": 16, "scores": [1, 0.9, 0.9, 0.9, 0.9, 0.9, 0.8, 0.8, 0.6, 0.6, 0.4, 0.1, 0.1, 0.1, null, null], "review": "보면 볼수록 왜 저렇게 전개 했는지 이해가 안되는 작품 엄마 첫사랑 이야기를 읽는 딸..? 근데 그 첫사랑이 아빠는 아님", "rating": 5, "keys": ["설렘", "성장", "여운"], "liked": true, "watchLabel": "2회차", "watchStart": 1792682109717, "history": [{"label": "1회차", "start": 1792139551781, "end": 1792682109717, "scores": [0.9, 0.9, 0.9, 0.8, 0.8, 0.9, 0.9, 0.8, 0.9, 0.5, 0.5, 0.5, 0.3, 0.1, 0.2, 0.1], "review": "엔딩이 다 망치지 않았나 싶음 앞에 너무 청량하게 담겨서 엔딩이 2배 더 아쉬움", "rating": 7, "upTo": 16}], "notes": {"15": "진짜 엔딩 뭐야?"}, "times": {}, "savedAt": 1792139551781, "touched": 1792927412469, "infoTried": true, "draft": false}, {"id": "1792139551781f199", "title": "나의 해방일지", "en": "My Liberation Notes", "tvId": 60691, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/397/993422.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/397/993422.jpg", "year": "2022", "network": "JTBC", "eps": 16, "info": {"genres": ["Drama", "Family", "Romance"], "summary": "It tells the story of three siblings who want to escape their stifling lives and a mysterious outsider who comes to their town.", "premiered": "2022-04-09", "ended": "2022-05-29"}, "kind": "휴먼", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 10, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792139551781, "history": [], "notes": {}, "times": {}, "savedAt": 1792139551781, "touched": 1788856351781, "infoTried": true}, {"id": "1792163557557d56b", "title": "달의 연인", "en": "", "tvId": 18630, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/71/179341.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/71/179341.jpg", "year": "2016", "network": "SBS", "eps": 16, "info": {"genres": ["Fantasy", "Romance", "History"], "summary": "When a total eclipse of the sun takes place, a 21st century woman, Go Ha Jin, is transported back in time to the Goryeo Dynasty of Korea. She wakes up in the body of 16-year-old Hae Soo, an aristocrat living with Lady Hae, her cousin who happens to be married to one of the sons of King Taejo. She soon befriends several of the princes, who find her carefree and exuberant attitude refreshing. Although she knows she should not get involved in palace intrigues over the succession to the throne, she inadvertently becomes a pawn in the struggle, as several of the Princes fall in love with her.", "premiered": "2016-08-29", "ended": "2016-11-01"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [1, 1, 1, 1, 1, 1, 1, 0.9, 0.8, 0.8, 0.7, 0.7, 0.7, 0.7, 0.6, 0.4], "review": "전반적으로 배우 라인업도 좋고 재미있으나 뒤로 갈수록 당황스럽게 어두워짐", "rating": 10, "keys": ["설렘", "여운"], "liked": true, "watchLabel": "1회차", "watchStart": 1792163557557, "history": [], "notes": {}, "times": {}, "savedAt": 1792163557557, "touched": 1792674343280, "infoTried": true}, {"id": "17921679891800c51", "title": "악의 마음을 읽는 자들", "en": "Through the Darkness", "tvId": 59400, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/389/972574.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/389/972574.jpg", "year": "2022", "network": "SBS", "eps": 12, "info": {"genres": ["Drama", "Thriller", "Mystery"], "summary": "Through the Darkness is about a criminal profiler who struggles to read the minds of serial killers. Song Ha Young is a criminal profiler. He is calm and has charisma. He digs up cases and looks deeply into the human mind.", "premiered": "2022-01-14", "ended": "2022-03-12"}, "kind": "스릴러", "status": "done", "upTo": 12, "scores": [0.3, 0.9, 1, 0.8, 0.6, 0.6, 0.9, 0.1, 0.1, 0.5, null, null], "review": "", "rating": 8, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792167989180, "history": [], "notes": {}, "times": {}, "savedAt": 1792167989180, "touched": 1792926864251, "infoTried": true, "draft": false}, {"id": "17924576006707436", "title": "100일의 거짓말", "en": "100 Days of Deception", "tvId": 90249, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/645/1613484.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/645/1613484.jpg", "year": "2026", "network": "tvN", "eps": 16, "info": {"genres": ["Action", "Romance", "Thriller"], "summary": "Set in Gyeongseong during the Japanese colonial period, the drama follows Ga Gyeong, the city's most talented pickpocket, who strikes a dangerous deal with the independence army and goes undercover at the Japanese Government-General of Joseon. Disguised as an employee, she is tasked with acting as a \"fake spy\" for just 100 days, but her mission slowly turns her into a real informant caught between survival, loyalty, and conviction.", "premiered": "2026-10-10", "ended": ""}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [1, 0.8, 0.9, 0.8, 0, null, null, null, null, null, null, null, null, null, null, null], "review": "미스터 선샤인이랑 비교해서 보면 재미있을 거같음", "rating": 8, "keys": ["재밋음"], "liked": true, "watchLabel": "1회차", "watchStart": 1792457600670, "history": [], "notes": {"0": "아직까진 재미있음"}, "times": {}, "savedAt": 1792457600670, "touched": 1792674203080, "infoTried": true, "draft": false}, {"id": "1792588910246db41", "title": "엄마친구아들", "en": "Love Next Door", "tvId": 74044, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/529/1324853.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/529/1324853.jpg", "year": "2024", "network": "tvN", "eps": 16, "info": {"genres": ["Comedy", "Romance"], "summary": "A romantic comedy that tells the story of a woman trying to reboot her life after making mistakes, and her mother's friend's son, who is her living dark side.", "premiered": "2024-08-17", "ended": "2024-10-06"}, "kind": "로맨스", "status": "want", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792588910246, "history": [], "notes": {}, "times": {}, "savedAt": 1792588910246, "touched": 1792911102859, "infoTried": true, "draft": false}, {"id": "1792589033348db7a", "title": "우리들의 블루스", "en": "Our Blues", "tvId": 60704, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/399/998175.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/399/998175.jpg", "year": "2022", "network": "tvN", "eps": 20, "info": {"genres": ["Drama", "Family", "Romance"], "summary": "An omnibus-style drama that tells the sweet, sour, and bitter life stories of diverse characters in the setting of Jeju Island.", "premiered": "2022-04-09", "ended": "2022-06-12"}, "kind": "휴먼", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792589033348, "history": [], "notes": {}, "times": {}, "savedAt": 1792589033348, "touched": 1792589044148, "infoTried": true, "draft": false}, {"id": "17926704749126ca1", "title": "프로듀사", "en": "The Producers", "tvId": 10308, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/464/1162337.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/464/1162337.jpg", "year": "2015", "network": "KBS2", "eps": 12, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "All-night meetings, nonstop stress and action. That's the life of a television variety show producer trying to put together a hit show and gain ratings while handling pressures from difficult stars and corporate executives who breathe down their necks. Baek Seung Chan is a fresh new producer-director (PD) who gave up law school to work in the exciting variety show division of a major television network. He works alongside the more seasoned veteran PDs Tak Ye Jin, a no-nonsense hot-shot who gets things done her way, and Ra Joon Mo, who is still waiting for his breakout hit series. As they work with temperamental stars like Cindy, a famous singer, can the PDs please everybody and get their jobs done?", "premiered": "2015-05-15", "ended": "2015-06-20"}, "kind": "코미디", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670474912, "history": [], "notes": {}, "times": {}, "savedAt": 1792670474912, "touched": 1792670474912, "infoTried": true, "draft": false}, {"id": "1792670489186222e", "title": "오 나의 귀신님", "en": "Oh My Ghost", "tvId": 7139, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/460/1150603.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/460/1150603.jpg", "year": "2015", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "Na Bong-sun has an extremely timid personality and low self-esteem, doesn't have any close friends, and is constantly getting reprimanded at her job as an assistant chef at Sun Restaurant. She also occasionally sees ghosts, thanks to a shaman grandmother. One day, Bong-sun gets possessed by a lustful virgin ghost named Shin Soon-ae. To make up for the lack of romance in her short life and believing that only by losing her virginity will she be able to \"resolve her grudge\" and move on to the afterlife, Soon-ae is determined to seduce as many men as she can by possessing various women, and she finds the perfect vessel in Bong-sun.Bong-sun's boss is arrogant star chef Kang Sun-woo, whom she secretly has a crush on. Sun-woo hasn't dated anyone since getting his heart broken by his college friend Lee So-hyung, who's now a TV producer. But when Bong-sun seemingly gets rid of her shyness and suddenly changes into a confident, dynamic woman, she finally catches his eye. Meanwhile, the mystery surrounding Soon-ae's death involves Sun-woo's brother-in-law, kindly police officer Choi Sung-jae who may not be what he seems.", "premiered": "2015-07-03", "ended": "2015-08-22"}, "kind": "판타지", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670489186, "history": [], "notes": {}, "times": {}, "savedAt": 1792670489186, "touched": 1792670493451, "infoTried": true, "draft": false}, {"id": "1792670496721d5c9", "title": "육룡이 나르샤", "en": "Six Flying Dragons", "tvId": 6201, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/23/59874.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/23/59874.jpg", "year": "2015", "network": "SBS", "eps": 50, "info": {"genres": ["Drama", "Action", "History"], "summary": "A period drama that depicts the ambitions and success stories of six people with Lee Bang Won as the central figure. Lee Bang Won was the third king in the Joseon Dynasty. He helped his father King Taejo establish the Joseon Dynasty.", "premiered": "2015-10-05", "ended": "2016-03-22"}, "kind": "사극", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670496721, "history": [], "notes": {}, "times": {}, "savedAt": 1792670496721, "touched": 1792670509304, "infoTried": true, "draft": false}, {"id": "17926705595275a26", "title": "시크릿 가든", "en": "Secret Garden", "tvId": 3733, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/19/47635.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/19/47635.jpg", "year": "2010", "network": "SBS", "eps": 20, "info": {"genres": ["Drama", "Comedy", "Fantasy"], "summary": "Kim Joo-won is the arrogant, eccentric heir to a large company who is poised to inherit a large department store. He constantly rejects the girls his matchmaking mother sends his way. When he meets Gil Ra-im, a beautiful, driven stunt-woman, she changes his life as he becomes fascinated by her strength and vulnerability.One day, a magical incident occurs and they find that they have switched bodies.", "premiered": "2010-11-13", "ended": "2011-01-16"}, "kind": "판타지", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670559527, "history": [], "notes": {}, "times": {}, "savedAt": 1792670559527, "touched": 1792670564123, "infoTried": true, "draft": false}, {"id": "179267056674352b6", "title": "장난스런 키스", "en": "Mischievous Kiss", "tvId": 16345, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/462/1157245.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/462/1157245.jpg", "year": "2010", "network": "MBC", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "Based on a Japanese manga, Mischievous Kiss centers on a slow-bubbling romance between a sunny student and her popular classmate", "premiered": "2010-09-01", "ended": "2010-10-21"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670566743, "history": [], "notes": {}, "times": {}, "savedAt": 1792670566743, "touched": 1792670576192, "infoTried": true, "draft": false}, {"id": "1792670582627037c", "title": "성균관 스캔들", "en": "Sungkyunkwan Scandal", "tvId": 17318, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/582/1456535.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/582/1456535.jpg", "year": "2010", "network": "KBS1", "eps": 20, "info": {"genres": ["Drama", "Comedy", "History"], "summary": "Sungkyunkwan Scandal is set in Sungkyunkwan University in the late Joseon era during the reign of King Jeongjo, revolving around the exploits and love stories of four youths. When her younger brother's illness worsens and their family is in danger of being evicted from their house for lack of money, Kim Yoon Hee enters the school under his name, disguised as a boy in her desperation to support him. There, she becomes friends with the intelligent and upright Lee Sun Joon, the playboy Goo Yong Ha and rebellious Moon Jae Shin.", "premiered": "2010-08-30", "ended": "2010-11-02"}, "kind": "코미디", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670582627, "history": [], "notes": {}, "times": {}, "savedAt": 1792670582627, "touched": 1792670588408, "infoTried": true, "draft": false}, {"id": "1792670642554edbb", "title": "김비서가 왜 그럴까", "en": "What's Wrong with Secretary Kim", "tvId": 36183, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/579/1449676.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/579/1449676.jpg", "year": "2018", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Romance"], "summary": "Lee Young's family runs a large firm in which Lee Young Joon works as vice-president. He is known to be rich, smart and handsome, but is known to be very arrogant. His secretary Kim Mi So, who works for them for many years, makes a decision which shocks him...", "premiered": "2018-06-06", "ended": "2018-07-26"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670642554, "history": [], "notes": {}, "times": {}, "savedAt": 1792670642554, "touched": 1792670651012, "infoTried": true, "draft": false}, {"id": "1792670652844ab86", "title": "뷰티 인사이드", "en": "The Beauty Inside", "tvId": 38468, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/168/420067.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/168/420067.jpg", "year": "2018", "network": "jTBC", "eps": 16, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "Top actress Han Se Kye is known to be a troublemaker and object to many rumours. While her life is for many a mystery, she actually suffers an unusual phenomenon in which her appearance changes to a complete different person once every month. One day she bumps into Seo Do Jae, an executive of an airline. Even though Seo Do Jae is unable to recognize faces, he tries his best to hide his issue and to memorize people by their habits and mannerisms.", "premiered": "2018-10-01", "ended": "2018-11-20"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [0.6, 0.5, 0.3, 0.3, 0.4, 0.4, 0.5, 0.7, 0.9, 0.8, 0.8, 0.7, 0.8, 0.7, 0.6, 0.6], "review": "서브 커플이 더 재미있는 드라마 남주가 연기를 좀 못함", "rating": 6, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670652844, "history": [], "notes": {}, "times": {}, "savedAt": 1792670652844, "touched": 1792681318867, "infoTried": true, "draft": false}, {"id": "1792670676207b4f3", "title": "라이브", "en": "Live", "tvId": 33835, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/146/366150.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/146/366150.jpg", "year": "2018", "network": "tvN", "eps": 18, "info": {"genres": ["Drama", "Thriller"], "summary": "This is a drama which focus on the daily ins and outs of police officers who work as civil servants and peacekeepers.", "premiered": "2018-03-10", "ended": "2018-05-06"}, "kind": "휴먼", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670676207, "history": [], "notes": {}, "times": {}, "savedAt": 1792670676207, "touched": 1792670677628, "infoTried": true, "draft": false}, {"id": "1792670701226f818", "title": "더 글로리 파트2", "en": "The Glory", "tvId": 65502, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/433/1084564.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/433/1084564.jpg", "year": "2023", "network": "Netflix", "eps": 16, "info": {"genres": ["Drama", "Thriller", "Mystery"], "summary": "Moon Dong Eun had to drop out of school because of school violence. Since then, she has lived with thoughts of revenge. Years later, her main abuser got married and gave birth to a child. The former victim becomes this child's homeroom teacher when he goes to elementary school. So begins her long and difficult path of revenge. It targets not only the main offender, but also all those who watched the violence, but did nothing. Joo Ye Jung is a carefree and smiling guy. Instead of being the fairy prince Dong Eun, he decides to become the means of her revenge.", "premiered": "2022-12-30", "ended": "2023-03-10"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670701226, "history": [], "notes": {}, "times": {}, "savedAt": 1792670701226, "touched": 1792769242797, "infoTried": true, "draft": false}, {"id": "1792670712921fcb8", "title": "구미호뎐", "en": "Tale of the Nine Tailed", "tvId": 49996, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/454/1135598.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/454/1135598.jpg", "year": "2020", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Thriller", "Supernatural"], "summary": "Tale of the Nine Tailed follows the life of the gumiho, who once ruled as a living god of the Baekdudaegan Mountain Range but now works as a sort of public official between this world and the underworld. His main job is to clean up the mess left behind by those who disturb the world of the living while hiding behind the guise of ghost tales.", "premiered": "2020-10-07", "ended": "2023-06-11"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670712921, "history": [], "notes": {}, "times": {}, "savedAt": 1792670712921, "touched": 1792670715707, "infoTried": true, "draft": false}, {"id": "17926707245382912", "title": "마스크걸", "en": "Mask Girl", "tvId": 66448, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/481/1202584.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/481/1202584.jpg", "year": "2023", "network": "Netflix", "eps": 7, "info": {"genres": ["Drama", "Crime", "Thriller"], "summary": "An office worker who is insecure about her looks becomes a masked internet personality by night --- until a chain of ill-", "premiered": "2023-08-18", "ended": "2023-08-18"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670724538, "history": [], "notes": {}, "times": {}, "savedAt": 1792670724538, "touched": 1792670726960, "infoTried": true, "draft": false}, {"id": "179267072838832d7", "title": "킹더랜드", "en": "King the Land", "tvId": 64352, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/461/1153424.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/461/1153424.jpg", "year": "2023", "network": "JTBC", "eps": 16, "info": {"genres": ["Comedy", "Romance"], "summary": "Set in the backdrop of a hotelier's dream, the VVIP business lounge 'King the Land', it depicts the story of a man who cannot withstand a fake smile and a woman who always has to smile brightly.", "premiered": "2023-06-17", "ended": "2023-08-06"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670728388, "history": [], "notes": {}, "times": {}, "savedAt": 1792670728388, "touched": 1792670731528, "infoTried": true, "draft": false}, {"id": "179267073389699d3", "title": "경이로운 소문", "en": "The Uncanny Counter", "tvId": 51521, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/470/1175302.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/470/1175302.jpg", "year": "2020", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Action", "Supernatural"], "summary": "The Uncanny Counter is about demon hunters called \"Counters\" who come to Earth and disguise themselves as employees at a noodle restaurant in order to capture evil spirits.", "premiered": "2020-11-28", "ended": "2023-09-03"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670733896, "history": [], "notes": {}, "times": {}, "savedAt": 1792670733896, "touched": 1792671367118, "infoTried": true, "draft": false}, {"id": "17926707434908b27", "title": "악귀", "en": "Revenant", "tvId": 66009, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/463/1159188.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/463/1159188.jpg", "year": "2023", "network": "SBS", "eps": 12, "info": {"genres": ["Thriller", "Mystery", "Supernatural"], "summary": "Outside the door is a different world. When you open the door, there is a demon there. This is an occult mystery thriller in which a woman possessed by a demon and a man who can see the demon dig into the mysterious death surrounding five bodies.", "premiered": "2023-06-23", "ended": "2023-07-29"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670743490, "history": [], "notes": {}, "times": {}, "savedAt": 1792670743490, "touched": 1792670745910, "infoTried": true, "draft": false}, {"id": "1792670749182c07b", "title": "퀸메이커", "en": "Queenmaker", "tvId": 66447, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/456/1141980.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/456/1141980.jpg", "year": "2023", "network": "Netflix", "eps": 11, "info": {"genres": ["Drama", "Legal"], "summary": "Strategy. Influence. Corruption. An unlikely pair of accomplished women joins forces to go up against a powerful conglomerate for the mayorship of Seoul.", "premiered": "2023-04-14", "ended": ""}, "kind": "휴먼", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670749182, "history": [], "notes": {}, "times": {}, "savedAt": 1792670749182, "touched": 1792670753612, "infoTried": true, "draft": false}, {"id": "1792670755482279d", "title": "연인", "en": "My Dearest", "tvId": 70147, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/486/1215120.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/486/1215120.jpg", "year": "2023", "network": "MBC", "eps": 21, "info": {"genres": ["Drama", "Romance", "History"], "summary": "A love-story between a noble woman and a mysterious man who shows up in her hometown set in the 1600s during the Qing invasion. Yu Gil Chae is a pretty, bubbly and a bit spoiled young lady who's named as the 99 tailed fox of Neunggun-ri. She is a bit of an outcast too because other young ladies are jealous of her. They seem to think she's too straight forward and her behavior is inappropriate for a young lady while young noble men think highly of her. Gil Chae knows how to get men to fall for her but fails to capture the heart of the person she likes. Lee Jang Hyun is a mysterious man who suddenly appears in the Neunggun-ri social scene one day. Nobody really knows about him. Young nobles don't like him while he has elderly people wrapped around his finger. He's been dating around a lot but becomes curious about a certain 99 tailed fox. And one day, the said fox crash lands to his arm literally. With the brewing war, the pair find themselves separated even before they start to make sense of their feelings.", "premiered": "2023-08-04", "ended": "2023-11-18"}, "kind": "사극", "status": "done", "upTo": 21, "scores": [1, 1, 1, 1, 1, 1, 1, 1, 1, 0.8, 0.8, 0.9, 0.7, 0.7, 0.9, 1, 0.9, 0.5, 0.6, 0.6, 0.3], "review": "", "rating": 8, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670755482, "history": [], "notes": {}, "times": {}, "savedAt": 1792670755482, "touched": 1792926598269, "infoTried": true, "draft": false}, {"id": "17926707607926804", "title": "일타 스캔들", "en": "Crash Course in Romance", "tvId": 64231, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/434/1087175.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/434/1087175.jpg", "year": "2023", "network": "tvN", "eps": 16, "info": {"genres": ["Comedy", "Romance"], "summary": "A romantic comedy between Nam Haeng-seon, the owner of a side dish shop who belatedly enters the entrance exam hell, and Choi Chi-yeol, a one-shot instructor who becomes a star in Korea's No. 1 private education.", "premiered": "2023-01-14", "ended": "2023-03-05"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670760792, "history": [], "notes": {}, "times": {}, "savedAt": 1792670760792, "touched": 1792670765188, "infoTried": true, "draft": false}, {"id": "1792670766754b1d1", "title": "나쁜 엄마", "en": "The Good Bad Mother", "tvId": 66735, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/454/1136784.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/454/1136784.jpg", "year": "2023", "network": "jTBC", "eps": 14, "info": {"genres": ["Drama", "Comedy", "Crime"], "summary": "A single mom who has been widowed at a young age, Yeong-soon runs a pig farm, and raises her son Kang-ho by herself. She becomes a \"bad mother\" - hard on her son because she doesn't want him to grow up penniless nor powerless. Thanks to her discipline, Kang-ho grows up to be a prominent prosecutor, but loses his memory due to an unfortunate accident and becomes a 7-year-old again. Young-soon decides to become a \"bad mother\" again for Kang-ho in this comforting and touching comedy series that tracks the journey of recovery between mother and son.", "premiered": "2023-04-26", "ended": "2023-06-08"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670766754, "history": [], "notes": {}, "times": {}, "savedAt": 1792670766754, "touched": 1792670769893, "infoTried": true, "draft": false}, {"id": "17926708374667a29", "title": "수상한 파트너", "en": "Suspicious Partner", "tvId": 26157, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/111/278231.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/111/278231.jpg", "year": "2017", "network": "SBS", "eps": 40, "info": {"genres": ["Comedy", "Romance", "Thriller"], "summary": "A forgetful killer can be a dangerous thing. Noh Ji Wook is a prosecutor who changes jobs to become a private attorney at a powerful law firm. Meanwhile, Eun Bong Hee is a prosecutor trainee who works with prosecutor Cha Yoo Jung, Ji Wook's ex-girlfriend who desperately wants to win him back. Attorney Ji Eun Hyuk is a longtime family friend of Ji Wook's but harbors some resentment about their different family circumstances.When a murderer strikes, Bong Hee suddenly finds herself as a suspect in the murder. But it appears the real killer has amnesia, and the killer keeps coming after Bong Hee and Ji Wook. Can the two team up to catch the forgetful killer?", "premiered": "2017-05-10", "ended": "2017-07-13"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670837466, "history": [], "notes": {}, "times": {}, "savedAt": 1792670837466, "touched": 1792670841104, "infoTried": true, "draft": false}, {"id": "17926708426062bd0", "title": "사랑의 온도", "en": "Temperature of Love", "tvId": 31524, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/127/318286.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/127/318286.jpg", "year": "2017", "network": "SBS", "eps": 40, "info": {"genres": ["Comedy", "Romance"], "summary": "Lee Hyun Soo is an aspiring drama series writer. She uses \"Jane\" as her username and begins chatting online with username \"Good Soup\" who is actually Ohn Jung Sun. Jung Sun dreams of becoming a French food chef. They then meet in real life and their relationship grows.", "premiered": "2017-09-18", "ended": "2017-11-21"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670842606, "history": [], "notes": {}, "times": {}, "savedAt": 1792670842606, "touched": 1792670849678, "infoTried": true, "draft": false}, {"id": "1792670850807b1cf", "title": "로봇이 아니야", "en": "I'm Not a Robot", "tvId": 32272, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330922.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/532/1330922.jpg", "year": "2017", "network": "MBC", "eps": 32, "info": {"genres": ["Drama", "Romance", "Science-Fiction"], "summary": "The story of a man who lives an isolated life due to a severe allergy to other people but meets and falls in love with a woman who pretends to be a robot.", "premiered": "2017-12-06", "ended": "2018-01-25"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670850807, "history": [], "notes": {}, "times": {}, "savedAt": 1792670850807, "touched": 1792670861645, "infoTried": true, "draft": false}, {"id": "17926708852568428", "title": "또 오해영", "en": "Another Miss Oh", "tvId": 14833, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/632/1581266.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/632/1581266.jpg", "year": "2016", "network": "tvN", "eps": 18, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "Two women working in the same industry with the exact same name keep getting their lives entangled both professionally and personally.", "premiered": "2016-05-02", "ended": "2016-06-28"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670885256, "history": [], "notes": {}, "times": {}, "savedAt": 1792670885256, "touched": 1792670892994, "infoTried": true, "draft": false}, {"id": "179267090028367fb", "title": "더블유", "en": "W", "tvId": 14842, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/68/170142.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/68/170142.jpg", "year": "2016", "network": "MBC", "eps": 16, "info": {"genres": ["Drama", "Romance", "Thriller"], "summary": "After being pulled into the webtoon world created by her father, a surgical resident gets entangled in a murder mystery involving the story's hero.", "premiered": "2016-07-20", "ended": "2016-09-14"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670900283, "history": [], "notes": {}, "times": {}, "savedAt": 1792670900283, "touched": 1792670905418, "infoTried": true, "draft": false}, {"id": "17926709071354dcf", "title": "태양의 후예", "en": "Descendants of the Sun", "tvId": 9426, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/46/115575.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/46/115575.jpg", "year": "2016", "network": "KBS2", "eps": 16, "info": {"genres": ["Drama", "Romance", "Medical"], "summary": "This story tells of doctors stationed in the fictional war zone of Urk, and follows the love story that develops between a surgeon and a special forces officer, both elite in their respective fields. The story tracks both their personal and professional struggles while exploring issues about the value of life.", "premiered": "2016-02-24", "ended": "2016-04-14"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670907135, "history": [], "notes": {}, "times": {}, "savedAt": 1792670907135, "touched": 1792670912287, "infoTried": true, "draft": false}, {"id": "17926709143178851", "title": "구르미 그린 달빛", "en": "Love in the Moonlight", "tvId": 14844, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/76/190752.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/76/190752.jpg", "year": "2016", "network": "KBS2", "eps": 18, "info": {"genres": ["Comedy", "Romance", "History"], "summary": "Hong Ra On, disguises herself as a man and counsels men on dating. Due to a love letter she wrote for a client, she meets Lee Yung---future Crown Prince Hyomyung. Hong Ra On is unaware that he is the Crown Prince and Lee Yung is unaware that Hong Ra On is a woman. The Crown Prince becomes interested in Hong Ra On. As nobody is aware of Ra On being a woman, she is sold to the palace and becomes an eunuch...", "premiered": "2016-08-22", "ended": "2016-10-18"}, "kind": "사극", "status": "done", "upTo": 18, "scores": [0.8, 1, 0.9, 0.8, 1, 1, 1, 0.8, 0.6, 0.6, 0.8, 0.8, 1, 0.8, 1, 0.7, 0.9, 1], "review": "해피엔딩인 몇 안되는 사극, 동시에 엄청 설레는 조합 !", "rating": 9, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792670914317, "history": [], "notes": {"6": "정원씬 색감이 너무 이쁨!", "8": "박보검의 공개 고백씬 .."}, "times": {}, "savedAt": 1792670914317, "touched": 1792926809491, "infoTried": true, "draft": false}, {"id": "1792670920617713e", "title": "낭만닥터 김사부 3", "en": "Romantic Doctor, Teacher Kim", "tvId": 19333, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/458/1146656.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/458/1146656.jpg", "year": "2023", "network": "SBS", "eps": 20, "info": {"genres": ["Drama", "Romance", "Medical"], "summary": "Both Kang Dong Joo and Yoon Seo Jung worked their backside off to become a doctor. For Kang Dong Joo, it was to beat someone out there and for Yoon Seo Jung, it was to be recognized by someone. The humanist drama depicts how the two doctors meet the oddball doctor, Kim Sa Bu and become to realize the true value of life and solace of love.", "premiered": "2016-11-07", "ended": "2023-06-17"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792670920617, "history": [], "notes": {}, "times": {}, "savedAt": 1792670920617, "touched": 1792929589027, "infoTried": true, "draft": false}, {"id": "1792671043973e06d", "title": "질투의 화신", "en": "Jealousy Incarnate", "tvId": 16143, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/71/179798.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/71/179798.jpg", "year": "2016", "network": "SBS", "eps": 24, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "The drama depicts romance as well as intense competitive rivalry between an anchor and a weather forecaster working together for a television news show.", "premiered": "2016-08-24", "ended": "2016-11-10"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671043973, "history": [], "notes": {}, "times": {}, "savedAt": 1792671043973, "touched": 1792671052308, "infoTried": true, "draft": false}, {"id": "17926710560384655", "title": "푸른 바다의 전설", "en": "The Legend of the Blue Sea", "tvId": 18628, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330925.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/532/1330925.jpg", "year": "2016", "network": "SBS", "eps": 20, "info": {"genres": ["Comedy", "Fantasy", "Romance"], "summary": "How can a mermaid from the Joseon era survive in modern-day Seoul? Shim Chung is a mermaid who finds herself transplanted to modern times. She is caught by Heo Joon Jae, a charming but cold con artist who is the doppelgänger for Kim Moon, the son of a nobleman from the Joseon Dynasty. But in the present time, Joon Jae works with Jo Nam Doo, a skilled conman who guides Joon Jae to become a genius scammer. But Joon Jae's friend, Cha Shi Ah, who works as a researcher at KAIST, may be Chung's only hope for surviving in her strange new world.", "premiered": "2016-11-16", "ended": "2017-01-25"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792671056038, "history": [], "notes": {}, "times": {}, "savedAt": 1792671056038, "touched": 1792671059385, "infoTried": true, "draft": false}, {"id": "179267108802701ed", "title": "나의 완벽한 비서", "en": "Love Scout", "tvId": 80927, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/620/1552267.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/620/1552267.jpg", "year": "2025", "network": "SBS", "eps": 12, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "A successful and confident woman, Kang Ji Yun, is the CEO of a headhunting company. To survive in the fiercely competitive headhunting field, she puts everything she has into her work. Outside of her job, she doesn't know how to do anything. She has a secretary named Yoo Eun Ho who takes care of pretty much everything for her. Unlike his boss, the secretary is friendly, well-mannered, and considerate of other people. He is a single father, who is also good at parenting and housework.", "premiered": "2025-01-03", "ended": "2025-02-14"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671088027, "history": [], "notes": {}, "times": {}, "savedAt": 1792671088027, "touched": 1792671099709, "infoTried": true, "draft": false}, {"id": "1792671108357b53a", "title": "원경", "en": "The Queen Who Crowns", "tvId": 81196, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/546/1365195.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/546/1365195.jpg", "year": "2025", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "History"], "summary": "Queen Won Kyung, born to Min Je during the Goryeo period, came from a prestigious family of high-ranking officials. Married to Lee Bang Won, son of King Taejo, she supported her husband's ambitions to become King Taejong after his father bypassed him for the throne. As a kingmaker, she helped establish a new regime. However, their relationship soured after Lee Bang Won became king, took concubines, and sought to curb Queen Won Kyung's influence and that of her family.", "premiered": "2025-01-06", "ended": "2025-02-11"}, "kind": "사극", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671108357, "history": [], "notes": {}, "times": {}, "savedAt": 1792671108357, "touched": 1792671111189, "infoTried": true, "draft": false}, {"id": "179267111309744e2", "title": "언젠가는 슬기로운 전공의생활", "en": "Resident Playbook", "tvId": 78417, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/565/1413772.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/565/1413772.jpg", "year": "2025", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "Medical"], "summary": "Set at the Jongno branch of Yulje Medical Center, the series follows the hospital lives and turbulent friendships of young obstetrics and gynecology residents who proudly enter the unpopular department in an era of low birth rates.", "premiered": "2025-04-12", "ended": "2025-05-18"}, "kind": "메디컬", "status": "done", "upTo": 12, "scores": [0.6, 0.6, 0.8, 0.2, 0.8, 0.5, 0.5, 0.1, 0.3, 0.6, 0.7, 0.6], "review": "의사생활만큼 재밌지는 않지만 킬링타임으로는 볼만함", "rating": 6, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671113097, "history": [], "notes": {}, "times": {}, "savedAt": 1792671113097, "touched": 1792926888981, "infoTried": true, "draft": false}, {"id": "1792671141687d1e7", "title": "폭군의 셰프", "en": "Bon Appétit, Your Majesty", "tvId": 85359, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/580/1452461.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/580/1452461.jpg", "year": "2025", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "Food", "History"], "summary": "What happens when a Michelin-worthy chef from Paris accidentally time-slips to the Joseon dynasty? She meets the King, a fearsome tyrant with an unexpectedly refined palate. In a bid to survive palace intrigue and royal appetites, she whips up dazzling fusion dishes that tempt even the coldest heart. But as sparks fly in the royal kitchen, a slow-burn romance simmers beneath the surface.", "premiered": "2025-08-23", "ended": "2025-09-28"}, "kind": "사극", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671141687, "history": [], "notes": {}, "times": {}, "savedAt": 1792671141687, "touched": 1792671146541, "infoTried": true, "draft": false}, {"id": "1792671148086e448", "title": "뿌리깊은 나무", "en": "A Tree with Deep Roots", "tvId": 19915, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/70/175956.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/70/175956.jpg", "year": "2011", "network": "SBS", "eps": 24, "info": {"genres": ["Drama", "Mystery", "History"], "summary": "Set up in the early reign of King Sejong, this drama started when Shim Ohn (King's father in law) and his whole household were framed to execution by the former King Taejong. Two young slaves survive and continue the living with the aim of getting revenge for the innocents' deaths. While King Sejong feeling guilty for not being able to rescue his people, he is determined to create hangul through secret organisation. However, the obstacles started when one by one of his people got involved in serial murder.", "premiered": "2011-10-05", "ended": "2011-12-24"}, "kind": "스릴러", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671148086, "history": [], "notes": {}, "times": {}, "savedAt": 1792671148086, "touched": 1792672427810, "infoTried": true, "draft": false}, {"id": "1792671153191dfc2", "title": "드림하이", "en": "Dream High", "tvId": 3633, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/49/123557.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/49/123557.jpg", "year": "2011", "network": "KBS2", "eps": 16, "info": {"genres": ["Comedy", "Music", "Romance"], "summary": "Dream High takes place at Kirin High School of Art and follows the lives of students as they aspire to become superstars.", "premiered": "2011-01-03", "ended": "2012-03-20"}, "kind": "로맨스", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671153191, "history": [], "notes": {}, "times": {}, "savedAt": 1792671153191, "touched": 1792671157660, "infoTried": true, "draft": false}, {"id": "17926711591318139", "title": "내 남편과 결혼해줘", "en": "Marry My Husband", "tvId": 72935, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/619/1549498.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/619/1549498.jpg", "year": "2024", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "Kang Ji-won, a terminally ill cancer patient, is killed by her husband and best friend after she witnesses them having an affair. She wakes up 10 years before the incident and decides to seek revenge with the help of Yu Ji-hyuk, a director at the company where she works. Now, she must reclaim her fate and eliminate the trash from her life.", "premiered": "2024-01-01", "ended": "2024-02-20"}, "kind": "판타지", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671159131, "history": [], "notes": {}, "times": {}, "savedAt": 1792671159131, "touched": 1792671164946, "infoTried": true, "draft": false}, {"id": "1792671184664c476", "title": "굿파트너", "en": "Good Partner", "tvId": 78050, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/525/1312893.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/525/1312893.jpg", "year": "2024", "network": "SBS", "eps": 16, "info": {"genres": ["Comedy", "Legal"], "summary": "Facing her own divorce, seasoned divorce lawyer Cha Eun Kyung has grown jaded with the concept of Justice, instead opting for the path with the most monetary gain. This changes after she begins working with passionate rookie lawyer Han Yoo Ri, who believes in helping people regardless of the money.", "premiered": "2024-07-12", "ended": "2026-11-21"}, "kind": "코미디", "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792671184664, "history": [], "notes": {}, "times": {}, "savedAt": 1792671184664, "touched": 1792671187057, "infoTried": true, "draft": false}, {"id": "1792671268490de02", "title": "유미의 세포들 3", "en": "Yumi's Cells", "tvId": 56626, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/621/1553740.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/621/1553740.jpg", "year": "2021", "network": "TVING", "eps": 14, "info": {"genres": ["Comedy", "Anime", "Romance"], "summary": "Yumi is an ordinary single working woman. She is not good at expressing her feelings. Through her romantic relationship and work, she grows as a person and finds happiness in her daily life. Yumi has cells in her brain that represent different emotions like love, violence, rationality, good, and bad. These tiny cells in her brain work actively for her. They deal with her emotions and troubles.", "premiered": "2021-09-17", "ended": "2026-05-04"}, "kind": "로맨스", "status": "done", "upTo": 14, "scores": [0.9, 0.9, 0.9, 0.7, 0.8, 0.9, 0.7, 0.7, 0.8, 0.9, 0.8, 0.7, 1, 1], "review": "유미의 상황이 나같아서 몰입하면서 볼 수 있었던 거 같음", "rating": 8, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792671268490, "history": [], "notes": {}, "times": {}, "savedAt": 1792671268490, "touched": 1792769409381, "infoTried": true, "draft": false}, {"id": "1792671390016d6cc", "title": "응답하라 1997", "en": "Answer Me 1997", "tvId": 7266, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/467/1169430.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/467/1169430.jpg", "year": "2012", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "This drama will focus on the extreme fan culture that emerged in the 1990s when idol groups took center stage and K-pop was blossoming.It tells the story of 6 former high school friends from a school in Busan who meet again in 2012 and brings back memories to 1997 when they were still high school students. Moving back and forth between the '90s and today, the story centers on the life of Sung Shi Won, who idolizes boyband H.O.T., and her 5 high school friends.", "premiered": "2012-07-24", "ended": "2012-09-18"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 8, "keys": ["휴먼", "우정", "로맨스"], "liked": false, "watchLabel": "1회차", "watchStart": 1792671390016, "history": [], "notes": {}, "times": {}, "savedAt": 1792671390016, "touched": 1792672041092, "infoTried": true, "draft": false}, {"id": "17926724521999c74", "title": "미지의 서울", "en": "Our Unwritten Seoul", "tvId": 84106, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/566/1416522.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/566/1416522.jpg", "year": "2025", "network": "tvN", "eps": 12, "info": {"genres": ["Drama", "Family", "Romance"], "summary": "Our Unwritten Seoul centers on twin sisters, Yoo Mi Ji and Yoo Mi Rae — identical in appearance yet opposite in personality and life paths. After a complicated twist of fate, they swap identities, each sister navigating unfamiliar challenges to discover love and their true selves.", "premiered": "2025-05-24", "ended": "2025-06-29"}, "kind": "휴먼", "status": "done", "upTo": 12, "scores": [0.6, 0.5, 0.1, 0.3, 0.3, 0.4, 0.5, 0.2, 0.3, 0.9, 0.5, 0.4], "review": "", "rating": 6, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792672452199, "history": [], "notes": {}, "times": {}, "savedAt": 1792672452199, "touched": 1792672559142, "infoTried": true, "draft": false}, {"id": "1792680189193eb79", "title": "멋진 신세계", "en": "My Royal Nemesis", "tvId": 90692, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/624/1561134.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/624/1561134.jpg", "year": "2026", "network": "SBS", "eps": 14, "info": {"genres": ["Comedy", "Fantasy", "Romance"], "summary": "A Joseon-era villain doomed to die opens her eyes in modern-day Seoul — where a ruthless chaebol heir may be her last chance to rewrite her fate.", "premiered": "2026-05-08", "ended": "2026-06-20"}, "kind": "로맨스", "status": "done", "upTo": 14, "scores": [0.8, 0.7, 0.6, 0.6, 0.6, 0.9, 0.8, 0.7, 0.6, 1, 0.7, 0.8, 0.8, 0.7], "review": "음 약간 병맛? 인듯 아닌듯 허남준의 재발견 같은 드라마 설레긴 하는데 여주 너무 오바함", "rating": 7, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792680189193, "history": [], "notes": {}, "times": {}, "savedAt": 1792680189193, "touched": 1792682392504, "infoTried": true, "draft": false}, {"id": "17926803768639d32", "title": "이 사랑 통역 되나요?", "en": "Can This Love Be Translated?", "tvId": 80053, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/608/1520438.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/608/1520438.jpg", "year": "2026", "network": "Netflix", "eps": 12, "info": {"genres": ["Drama", "Romance"], "summary": "The emotions of a celebrity and her interpreter get lost in translation as they travel the world filming a TV show. Will love find its own language?", "premiered": "2026-01-16", "ended": "2026-01-16"}, "kind": "휴먼", "status": "done", "upTo": 12, "scores": [1, 1, 1, 1, 1, 1, 0.9, 0.9, 1, 1, 0.9, 0.9], "review": "두번 보니까 첫번째 봤을때랑 느낌이 좀 달랐음!!", "rating": 9, "keys": [], "liked": true, "watchLabel": "2회차", "watchStart": 1792681772502, "history": [{"label": "1회차", "start": 1792680376863, "end": 1792681772502, "scores": [1, 1, 1, 1, 0.8, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.7], "review": "씁 뭔가 내가 생각한 전개는 아니였음 로맨스가 더 드러날줄 알았는데 좀 애매", "rating": 7, "upTo": 12}], "notes": {}, "times": {}, "savedAt": 1792680376863, "touched": 1792929395583, "infoTried": true, "draft": false}, {"id": "179268066526946bb", "title": "환혼 1", "en": "Alchemy of Souls", "tvId": 62248, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/609/1523773.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/609/1523773.jpg", "year": "2022", "network": "tvN", "eps": 20, "info": {"genres": ["Action", "Fantasy", "Romance"], "summary": "Set in a fictional country called Daeho that does not exist in history or on maps, it is about the love and growth of young mages as they overcome their twisted fates due to a magic spell known as the \"alchemy of souls\", which allows souls to switch bodies. It follows the story of an elite assassin named Naksu, whose soul is accidentally trapped inside the weak body of Moo Duk—Jang Wook's servant from a powerful and noble family in the country. The young master of the Jang Family, Jang Wook, holds a dark secret about his scandalous birth. He wants the formidable assassin to help change his destiny.", "premiered": "2022-06-18", "ended": "2023-01-08"}, "kind": "로맨스", "status": "done", "upTo": 20, "scores": [1, 1, 1, 1, 0.9, 0.9, 1, 0.9, 0.9, 0.9, 0.9, 1, 1, 1, 0.9, 0.8, 1, 0.9, 0.6, 0.2], "review": "", "rating": 8, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792680665269, "history": [], "notes": {}, "times": {}, "savedAt": 1792680665269, "touched": 1792926601643, "infoTried": true, "draft": false}, {"id": "179268079897529b4", "title": "알고있지만,", "en": "Nevertheless,", "tvId": 55250, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/326/815740.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/326/815740.jpg", "year": "2021", "network": "jTBC", "eps": 10, "info": {"genres": ["Drama", "Romance"], "summary": "Park Jae Eon is a university student, majoring in art. He seems nice to everyone and he is usually cheerful. Yet, he is really indifferent to others and he doesn't want to have a romantic relationship. Unexpectedly, he fall for Yoo Na Bi and begins to change. Yoo Na Bi is an art srudent at the same university as Park Jae Eon. In her past, she broke up with her first love due to his unfaithful ways. After that, she decided to become unswayed by love. She then meets Park Jae Eon and develops feelings for him.", "premiered": "2021-06-19", "ended": "2021-08-21"}, "kind": "로맨스", "status": "done", "upTo": 10, "scores": [0.8, 1, 0.9, 0.8, 0.7, 0.9, 0.7, 0.4, 0.3, 0.2], "review": "", "rating": 6, "keys": [], "liked": true, "watchLabel": "1회차", "watchStart": 1792680798975, "history": [], "notes": {}, "times": {}, "savedAt": 1792680798975, "touched": 1792926604457, "infoTried": true, "draft": false}, {"id": "17926810890757457", "title": "어쩌다 발견한 하루", "en": "Extraordinary You", "tvId": 42757, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/211/527722.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/211/527722.jpg", "year": "2019", "network": "MBC", "eps": 32, "info": {"genres": ["Drama", "Romance"], "summary": "It tells the story of a girl who realizes that she is a supporting character inside a romance manga named \"Secret\". She tries to change the fixed story for her love and life.", "premiered": "2019-10-02", "ended": "2019-11-21"}, "kind": "로맨스", "status": "done", "upTo": 32, "scores": [0.4, 0.4, 0.4, 0.4, 0.3, 0.3, 0.3, 0.3, 0.2, 0.2, 0.1, 0.1, 0.1, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "남주나 전개가 재밌긴 하나 다음화가 별로 안 궁금함", "rating": 5, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792681089075, "history": [], "notes": {}, "times": {}, "savedAt": 1792681089075, "touched": 1792681125213, "infoTried": true, "draft": false}, {"id": "17926812427945fa1", "title": "아는 와이프", "en": "Familiar Wife", "tvId": 36193, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/160/400828.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/160/400828.jpg", "year": "2018", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "A married couple suddenly finds themselves living entirely different lives after their fates magically change through an unexpected incident.", "premiered": "2018-08-01", "ended": "2018-09-20"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [0.4, 0.5, 0.3, 0.3, 0.1, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": 3, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792681242794, "history": [], "notes": {}, "times": {}, "savedAt": 1792681242794, "touched": 1792926557844, "infoTried": true, "draft": false}, {"id": "17926813281944457", "title": "황후의 품격", "en": "The Last Empress", "tvId": 39121, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/563/1409100.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/563/1409100.jpg", "year": "2018", "network": "SBS", "eps": 52, "info": {"genres": ["Drama", "Fantasy", "Romance"], "summary": "Set in an alternate universe, in which Korea is a constitutional monarchy in 2018, Oh Sunny is a bright and vivacious musical actress who marries the emperor. She becomes involved in the palace power struggle and a mysterious murder that sets off events that threaten the monarchy itself, while searching for true love and happiness.", "premiered": "2018-11-21", "ended": "2019-02-21"}, "kind": "로맨스", "status": "done", "upTo": 52, "scores": [0.4, 0.3, 0.3, 0.4, 0.4, 0.4, 0.5, 0.5, 0.7, 0.8, 0.8, 0.6, 0.5, 0.5, 0.5, 0.4, 0.3, 0.3, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5, 0.4, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.5, 0.4, 0.4, 0.4, 0.5, 0.4, 0.3, 0.3, 0.3, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1], "review": "아줌마들이 왜 막장드라마를 보는 지 알 거 같은 느낌..? 그치만 뒤로 갈수록 임펙트 없음", "rating": 6, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792681328194, "history": [], "notes": {}, "times": {}, "savedAt": 1792681328194, "touched": 1792681401598, "infoTried": true, "draft": false}, {"id": "17926814033144646", "title": "알함브라 궁전의 추억", "en": "Memories of the Alhambra", "tvId": 38250, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/173/433813.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/173/433813.jpg", "year": "2018", "network": "tvN", "eps": 16, "info": {"genres": ["Drama", "Comedy", "Romance"], "summary": "Yoo Jin Woo is the CEO of an investment company. He has good sense at his work, a strong adventurous spirit and a strong desire for winning. Yoo Jin Woo is going through a hard time emotionally due to things like betrayal from his friends. He visits Granada, Spain on business and stays at an old hostel run by Jung Hee Joo. There, Yoo Jin Woo gets involved in a strange affair.", "premiered": "2018-12-01", "ended": "2019-01-20"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [0.3, 0.4, 0.4, 0.3, 0.2, 0.1, 0.1, 0.1, null, null, null, null, null, null, null, null], "review": "", "rating": 3, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792681403314, "history": [], "notes": {}, "times": {}, "savedAt": 1792681403314, "touched": 1792926608985, "infoTried": true, "draft": false}, {"id": "1792681493004a360", "title": "힘쎈여자 도봉순", "en": "Strong Woman Do Bong Soon", "tvId": 18627, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/532/1331189.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/532/1331189.jpg", "year": "2017", "network": "jTBC", "eps": 16, "info": {"genres": ["Comedy", "Action", "Fantasy"], "summary": "Strong Woman Do Bong Soon tells the story about Do Bong Soon who is a woman born with Herculean strength, anything she touches with too much force crumbles in her hands. Ahn Min Hyuk is her love interest and he is an extraordinary second-generation chaebol with crazy tendencies. Meanwhile, Gook Doo is the guy who's harbored a one-sided crush on the heroine.", "premiered": "2017-02-24", "ended": "2017-04-15"}, "kind": null, "status": "done", "upTo": 16, "scores": [0.6, 0.6, 0.6, 0.8, 0.8, 0.9, 1, 1, 1, 1, 1, 0.9, 0.9, 1, 1, 1], "review": "서브 남주 왜저래", "rating": 8, "keys": [], "liked": true, "watchLabel": "2회차", "watchStart": 1792681550650, "history": [{"label": "1회차", "start": 1792681493004, "end": 1792681550650, "scores": [0.7, 0.8, 0.9, 0.7, 0.8, 1, 1, 0.8, 0.9, 1, 0.9, 0.8, 0.9, 1, 1, 1], "review": "여주 남주 아주 잘어울림 로맨스만이 아니라 스릴러가 겹쳐 있어서 지루하지 않음 박보영 개귀여움 !", "rating": 8, "upTo": 16}], "notes": {}, "times": {}, "savedAt": 1792681493004, "touched": 1792681569153, "infoTried": true}, {"id": "17926815840713e22", "title": "쌈 마이웨이", "en": "Fight for My Way", "tvId": 26158, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/111/279504.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/111/279504.jpg", "year": "2017", "network": "KBS2", "eps": 16, "info": {"genres": ["Drama", "Romance"], "summary": "Fight for My Way is about two individuals who have been living every day stuck in the daily grind. Without the connections, money, or education necessary to advance, they've been unable to escape their third-rate lives.", "premiered": "2017-05-22", "ended": "2017-07-11"}, "kind": "로맨스", "status": "done", "upTo": 16, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "남사친 여사친이 없음을 알려주는 드라마..", "rating": 9, "keys": [], "liked": true, "watchLabel": "3회차", "watchStart": 1792681666588, "history": [{"label": "1회차", "start": 1792681584071, "end": 1792681628739, "scores": [0.9, 0.9, 0.9, 1, 1, 1, 1, 1, 1, 1, 0.8, 0.8, 1, 1, 0.9, 0.9], "review": "20대의 마음을 투영한 거같은 드라마 김지원이랑 박서준은 당연히 연기 잘하고 나머지 조연배우들도 연기 개잘함", "rating": 10, "upTo": 16}, {"label": "2회차", "start": 1792681628739, "end": 1792681666588, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "2번째 보니 설이 주만이 커플이 되게 현실적이라는 생각이 듦", "rating": 9, "upTo": 16}], "notes": {}, "times": {}, "savedAt": 1792681584071, "touched": 1792681696791, "infoTried": true, "draft": false}, {"id": "1792682915738d596", "title": "SKY 캐슬", "en": "Sky Castle", "tvId": 39318, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/174/435629.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/174/435629.jpg", "year": "2018", "network": "jTBC", "eps": 20, "info": {"genres": ["Drama", "Comedy", "Family"], "summary": "Sky Castle is set in a four-story apartment building in Seoul's suburbs, which is inhabited by some professionals such as judges, prosecutors, doctors, professors and their wives.It will depict their efforts to have their children admitted into good universities. Some grew up in families with many generations of doctors or lawyers. Thus, their ambitions will be shown with comedy and realism.", "premiered": "2018-11-23", "ended": "2019-02-01"}, "kind": null, "status": "done", "upTo": 20, "scores": [1, 0.8, 0.7, 0.7, 0.7, 0.8, 0.8, 0.6, 0.8, 0.8, 0.6, 0.6, 0.7, 0.8, 0.8, 0.6, 0.5, 0.6, 0.4, 0.1], "review": "이거 볼때 중학생이였었는데 입시가 이런거라고..? 하며 심란해했었던 기억이 남", "rating": 8, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792682915738, "history": [], "notes": {"0": "처음부터 파격적이게 시작함"}, "times": {}, "savedAt": 1792682915738, "touched": 1792926647415, "infoTried": true, "draft": false}, {"id": "179275574536219e9", "title": "킬미, 힐미", "en": "Kill Me, Heal Me", "tvId": 3199, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330923.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/532/1330923.jpg", "year": "2015", "network": "MBC", "eps": 20, "info": {"genres": ["Comedy", "Romance", "Medical"], "summary": "A romantic comedy between a third-generation billionaire with Dissociative Identity Disorder and a first-year Psychiatrist resident who treats him secretly.After a traumatic experience in his childhood, Cha Do Hyun suffers memory lapses and his personality then fractured into seven different identities. He tries to regain control over his life with the help of Oh Ri Jin, a first-year psychiatric resident who treats him secretly. But Ri Jin's twin brother, Oh Ri Ohn, is a famous mystery novelist who investigates about Do Hyun and his family.", "premiered": "2015-01-07", "ended": "2015-03-12"}, "kind": "로맨스", "status": "watching", "upTo": 11, "scores": [null, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.4, 0.4, 0.4, 0.5, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792755745362, "history": [], "notes": {}, "times": {}, "savedAt": 1792755745362, "touched": 1792755752616, "infoTried": true}, {"id": "1792926451927687f", "title": "하이에나", "en": "Hyena", "tvId": 45681, "poster": "https://static.tvmaze.com/uploads/images/medium_portrait/240/600227.jpg", "posterBig": "https://static.tvmaze.com/uploads/images/original_untouched/240/600227.jpg", "year": "2020", "network": "SBS", "eps": 16, "info": {"genres": ["Drama", "Romance", "Legal"], "summary": "Yoon Hee Jae and Jung Geum Ja are lawyers who work for the top 1% in society. Jung Geum Ja is a lawyer, who is after money only. She wins her cases using any means necessary. Yoon Hee Jae is an elite lawyer, who is smart and confident at his job.", "premiered": "2020-02-21", "ended": "2020-04-11"}, "kind": null, "status": "watching", "upTo": 0, "scores": [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null], "review": "", "rating": null, "keys": [], "liked": false, "watchLabel": "1회차", "watchStart": 1792926451927, "history": [], "notes": {}, "times": {}, "savedAt": 1792926451927, "touched": 1792926451927, "infoTried": true}], "sets": [{"id": "s1792673541278", "name": "대사까지 외운 드라마", "color": "#8C6CE0", "ids": ["179213955178193ea", "1792139551781f9d4", "1792139551781c144", "1792139551781d3cd", "179213955178142c3", "17921395517813fdf", "1792163557557d56b", "1792670701226f818", "1792670755482279d", "179267090028367fb", "17926709071354dcf", "17926709143178851"]}, {"id": "s1792674271823", "name": "최애 사극", "color": "#E8483B", "ids": ["1792139551781f9d4", "1792163557557d56b", "17924576006707436", "1792670496721d5c9", "1792670755482279d", "17926709143178851"]}, {"id": "s1792674501441", "name": "개 설레는", "color": "#E05D8C", "ids": ["1792139551781956f", "179213955178193ea", "179213955178142c3", "179213955178166e2", "17921395517813fdf", "1792139551781b879", "17926709071354dcf", "17926709143178851"]}, {"id": "s1792926401496", "name": "메디컬 드라마", "color": "#4C86E8", "ids": ["17921395517817345", "179267111309744e2", "1792670920617713e"]}, {"id": "s1792926440233", "name": "법 드라마", "color": "#F07A2E", "ids": ["17921395517812c42", "1792671184664c476", "1792926451927687f"]}], "sample": false};
+const STARTER = {
+  dramas: [
+    {
+      id: "1792139551781c936",
+      title: "나의 아저씨",
+      en: "My Mister",
+      tvId: 33840,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/150/375701.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/150/375701.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Family"],
+        summary:
+          "A man in his 40's withstands the weight of life. A woman in her 20's goes through different experiences, but also withstands the weight of her life. The man and woman get together to help each other.",
+        premiered: "2018-03-21",
+        ended: "2018-05-17",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.3,
+        0.4,
+        0.5,
+        0.5,
+        0.9,
+        0.7,
+        0.3,
+        0.1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review:
+        "깊이 있는 드라마고 연기력도 좋지만 드라마 자체가 너무 우울함 (이런 류의 드라마를 좋아한다면 추천)",
+      rating: 5,
+      keys: ["인생작", "눈물버튼", "여운"],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792673980814,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792681207847,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781956f",
+      title: "눈물의 여왕",
+      en: "Queen of Tears",
+      tvId: 67633,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/507/1269260.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/507/1269260.jpg",
+      year: "2024",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          'Baek Hyun Woo, who is the pride of the village of Yongduri, is the legal director of the conglomerate Queens Group, while chaebol heiress Hong Hae In is the "queen" of Queens Group\'s department stores. Queen of Tears will tell the miraculous, thrilling, and humorous love story of this married couple, who manage to survive a crisis and stay together against all odds.',
+        premiered: "2024-03-09",
+        ended: "2024-04-28",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "김지원도 존예",
+      rating: null,
+      keys: ["설렘", "OST맛집"],
+      liked: true,
+      watchLabel: "4회차",
+      watchStart: 1792167817257,
+      history: [
+        {
+          label: "1회차",
+          start: 1709996400000,
+          end: 1712674800000,
+          rating: 8,
+          upTo: 16,
+          scores: [
+            0.7, 0.8, 0.7, 0.7, 0.8, 0.7, 0.9, 1, 0.8, 0.7, 0.7, 0.8, 0.7, 0.9,
+            0.8, 0.9,
+          ],
+          review: "8화 엔딩 미쳤다. 중반은 좀 늘어짐",
+        },
+        {
+          label: "2회차",
+          start: 1791558000000,
+          end: 1792167489619,
+          scores: [
+            0.8,
+            0.8,
+            0.7,
+            0.8,
+            0.9,
+            0.8,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+          ],
+          review: "",
+          rating: 9,
+          upTo: 16,
+        },
+        {
+          label: "3회차",
+          start: 1792167489619,
+          end: 1792167817257,
+          scores: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0.5],
+          review: "김수현 존잘",
+          rating: 9,
+          upTo: 16,
+        },
+      ],
+      notes: { 7: "엔딩 직전 대사" },
+      times: { 7: "1:08:30" },
+      savedAt: 1792139551781,
+      touched: 1792682027676,
+      infoTried: true,
+    },
+    {
+      id: "17921395517819aee",
+      title: "정년이",
+      en: "Jeongnyeon: The Star Is Born",
+      tvId: 79498,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/535/1337651.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/535/1337651.jpg",
+      year: "2024",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Music"],
+        summary:
+          "Jeong Nyeon has no money or education, but she is a Mokpo girl with a talent for singing! Her dream is to join a women's traditional theater company, and make it big. But she has a lot to learn and a long way to go before becoming a lead actor. Will Jeong Nyeon achieve her dream of becoming a big star and getting rich?",
+        premiered: "2024-10-12",
+        ended: "2024-11-17",
+      },
+      kind: "휴먼",
+      status: "watching",
+      upTo: 8,
+      scores: [0.6, 0.7, 0.6, 0.8, 0.9, 0.7, 0.8, 0.6, null, null, null, null],
+      review: "",
+      rating: null,
+      keys: ["성장"],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: { 3: "첫 무대, 소름" },
+      times: { 3: "52:10" },
+      savedAt: 1792139551781,
+      touched: 1792926997908,
+      infoTried: true,
+    },
+    {
+      id: "179213955178193ea",
+      title: "선재 업고 튀어",
+      en: "Lovely Runner",
+      tvId: 75084,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/510/1276542.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/510/1276542.jpg",
+      year: "2024",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Fantasy", "Romance"],
+        summary:
+          "Im Sol is devastated by the sudden and tragic death of her idol Ryu Sun-Jae, a former swimmer turned K-pop star. But in the midst of her grief, she magically travels back to 2008 - when Sun-Jae was only 19 years old! Sol is delighted that she can help him escape his sad future fate, and makes it her mission to change the future ... and maybe even find true love in the process. Will her attempts to change the course of the past succeed - or could they have unexpected consequences?",
+        premiered: "2024-04-08",
+        ended: "2024-05-28",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.8, 0.9, 0.7, 0.8, 0.7, 0.8, 0.9, 1, 0.8, 0.7, 0.8, 0.9, 0.7, 0.8, 0.9,
+        1,
+      ],
+      review: "비 오는 날 우산 장면 = 레전드",
+      rating: 9,
+      keys: ["설렘", "OST맛집"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: { 7: "타임슬립 반전" },
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792211243698,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781a01d",
+      title: "폭싹 속았수다",
+      en: "When Life Gives You Tangerines",
+      tvId: 74399,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/553/1383936.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/553/1383936.jpg",
+      year: "2025",
+      network: "Netflix",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          "In Jeju, a spirited girl and a steadfast boy's island story blossoms into a lifelong tale of setbacks and triumphs --- proving love endures across time.",
+        premiered: "2025-03-07",
+        ended: "2025-03-28",
+      },
+      kind: "가족",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.8, 0.8, 0.9, 1, 0.8, 0.8, 0.7, 0.9, 0.8, 0.8, 0.9, 1, 0.8, 0.8, 0.9,
+        0.9,
+      ],
+      review: "휴지 필수. 엄마한테 전화하게 되는 드라마",
+      rating: 10,
+      keys: ["인생작", "눈물버튼"],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792139551781,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781d3bd",
+      title: "무빙",
+      en: "Moving",
+      tvId: 64111,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/472/1181779.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/472/1181779.jpg",
+      year: "2023",
+      network: "Disney+",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Action", "Fantasy"],
+        summary:
+          "Set in modern-day Korea, Moving tells the story of a group of superpowered individuals who hide their true abilities from the world in order to protect their families from harm and exploitation.",
+        premiered: "2023-08-09",
+        ended: "",
+      },
+      kind: "판타지",
+      status: "watching",
+      upTo: 12,
+      scores: [
+        0.7,
+        0.7,
+        0.6,
+        0.6,
+        0.7,
+        0.8,
+        0.9,
+        0.7,
+        0.9,
+        1,
+        0.8,
+        0.7,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: ["도파민", "밤샘정주행"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792139551781,
+      infoTried: true,
+    },
+    {
+      id: "17921395517812c42",
+      title: "비밀의 숲",
+      en: "Stranger",
+      tvId: 28517,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/265/662957.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/265/662957.jpg",
+      year: "2017",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Crime", "Mystery", "Legal"],
+        summary:
+          "Though he is rational, a childhood brain surgery leaves prosecutor Hwang Shi Mok to lack emotion. Cold and lonely, he's one of the only prosecutors not involved in corruption. When he meets Police Lieutenant Han Yeo Jin at a murder crime scene, they join forces to eradicate corruption at the prosecutor's office and solve a serial murder case.",
+        premiered: "2017-06-10",
+        ended: "2020-10-04",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 1,
+      scores: [
+        1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792673386635,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781f9d4",
+      title: "미스터 션샤인",
+      en: "Mr. Sunshine",
+      tvId: 33837,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/159/399228.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/159/399228.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 24,
+      info: {
+        genres: ["Drama", "Romance", "History"],
+        summary:
+          "During the United States expedition to Joseon in 1871, a boy from Joseon boards an American warship and goes to America. As an adult, he returns to his home country as an American soldier stationed in the country",
+        premiered: "2018-07-07",
+        ended: "2018-09-30",
+      },
+      kind: "사극",
+      status: "done",
+      upTo: 24,
+      scores: [
+        0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.4, 0.6, 0.8, 0.7,
+        0.6, 0.6, 0.4, 0.4, 0.4, 0.2, 0.8, 0.8, 0.6, 0.3,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792670596456,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781c144",
+      title: "응답하라 1988",
+      en: "Reply 1988",
+      tvId: 7269,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/27/67574.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/27/67574.jpg",
+      year: "2015",
+      network: "tvN",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "A drama about a small cluster of neighboring families set in 1988.",
+        premiered: "2015-11-06",
+        ended: "2016-01-16",
+      },
+      kind: "코미디",
+      status: "done",
+      upTo: 20,
+      scores: [
+        0.2,
+        0.2,
+        0.1,
+        0.1,
+        0.1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 10,
+      keys: ["인생작", "가족", "힐링"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792671916163,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781d3cd",
+      title: "도깨비",
+      en: "Guardian: The Lonely and Great God",
+      tvId: 16150,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330901.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/532/1330901.jpg",
+      year: "2016",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "Guardians are always whom we fear. Surely not this time. A guardian living in Seoul in 2016 is the sexiest chick magnet. More than a hundred years old in reality, he hangs out with the young. But not many people know that he is hollow inside. He has been searching for the ‘goblin bride' for decades, but she is no where to be found. Then one day, he keeps getting summoned by Eun-tak. There, he sees the Reaper, not knowing that they are to become roommates. That's where the story begins. A Goblin, trying to protect a girl who should have been dead a long time ago. A Reaper, desperately wanting to take the girl to complete his task.",
+        premiered: "2016-12-02",
+        ended: "2017-01-21",
+      },
+      kind: "판타지",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 9,
+      keys: ["설렘", "OST맛집"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1789461151781,
+      infoTried: true,
+    },
+    {
+      id: "179213955178157b3",
+      title: "슬기로운 감빵생활",
+      en: "Prison Playbook",
+      tvId: 33280,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/134/336265.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/134/336265.jpg",
+      year: "2017",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy"],
+        summary:
+          "Prison Playbook is a black comedy in which we follow a baseball player and a variety of people experience prison life. The drama will share the lives and stories behind these prisoners as well as events that take place there.",
+        premiered: "2017-11-22",
+        ended: "2018-01-18",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 9,
+      keys: ["힐링", "밤샘정주행"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1789374751781,
+      infoTried: true,
+    },
+    {
+      id: "179213955178142c3",
+      title: "사랑의 불시착",
+      en: "Crash Landing on You",
+      tvId: 42756,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/235/588087.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/235/588087.jpg",
+      year: "2019",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "Crash Landing on You follows a wealthy heiress named Yoon Se Ri, who, while paragliding, is forced to land in North Korea due to high winds. A North Korean officer named Ri Jung Hyuk hides and protects her, and in doing so, comes to love her",
+        premiered: "2019-12-14",
+        ended: "2020-02-16",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 9,
+      keys: ["설렘"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1789288351781,
+      infoTried: true,
+    },
+    {
+      id: "179213955178166e2",
+      title: "동백꽃 필 무렵",
+      en: "When the Camellia Blooms",
+      tvId: 41817,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/210/526021.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/210/526021.jpg",
+      year: "2019",
+      network: "KBS2",
+      eps: 20,
+      info: {
+        genres: ["Comedy", "Romance", "Thriller"],
+        summary:
+          "When the Camellia Blooms tells the story of Dong Baek, owner of a bar named Camellia, whose life changes after she encounters three men including a good man, a bad man and a cheap man.",
+        premiered: "2019-09-18",
+        ended: "2019-11-21",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 20,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 10,
+      keys: ["눈물버튼", "힐링"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792587988193,
+      infoTried: true,
+    },
+    {
+      id: "17921395517817345",
+      title: "슬기로운 의사생활",
+      en: "Hospital Playlist",
+      tvId: 46260,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/323/807792.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/323/807792.jpg",
+      year: "2020",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Medical"],
+        summary:
+          "In Hospital Playlist we follow the lives of five ordinary doctors who all attended the same medical school in 1999 are now friends and work together at the same hospital.",
+        premiered: "2020-03-12",
+        ended: "2021-09-16",
+      },
+      kind: "메디컬",
+      status: "done",
+      upTo: 12,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 9,
+      keys: ["힐링", "OST맛집"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1789115551781,
+      infoTried: true,
+    },
+    {
+      id: "17921395517813fdf",
+      title: "그 해 우리는",
+      en: "Our Beloved Summer",
+      tvId: 58766,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/376/941045.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/376/941045.jpg",
+      year: "2021",
+      network: "SBS",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "A romance comedy that portrays the complicated feelings of a couple that breaks up saying, \"It was an awful time with you, and let's never meet again!\" However, the documentary they filmed 10 years ago in high school suddenly gains popularity, and they're forcibly brought together in front of the camera once more.",
+        premiered: "2021-12-06",
+        ended: "2022-01-25",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 8,
+      keys: ["설렘", "여운"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1789029151781,
+      infoTried: true,
+    },
+    {
+      id: "1792139551781b879",
+      title: "스물다섯 스물하나",
+      en: "Twenty-Five Twenty-One",
+      tvId: 59683,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/390/977086.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/390/977086.jpg",
+      year: "2022",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "Twenty-Five Twenty-One depicts a story from 1998 to 2021. In 1998, twenty-two and eighteen meet for the first time in an uneasy year as the whole world shook and called each others' name and when they became twenty-three and nineteen, they hurt each other. In the year of twenty-four and twenty, they relied on each other, and they loved only when they were twenty-five and twenty-one.",
+        premiered: "2022-02-12",
+        ended: "2022-04-03",
+      },
+      kind: "사극",
+      status: "done",
+      upTo: 16,
+      scores: [
+        1,
+        0.9,
+        0.9,
+        0.9,
+        0.9,
+        0.9,
+        0.8,
+        0.8,
+        0.6,
+        0.6,
+        0.4,
+        0.1,
+        0.1,
+        0.1,
+        null,
+        null,
+      ],
+      review:
+        "보면 볼수록 왜 저렇게 전개 했는지 이해가 안되는 작품 엄마 첫사랑 이야기를 읽는 딸..? 근데 그 첫사랑이 아빠는 아님",
+      rating: 5,
+      keys: ["설렘", "성장", "여운"],
+      liked: true,
+      watchLabel: "2회차",
+      watchStart: 1792682109717,
+      history: [
+        {
+          label: "1회차",
+          start: 1792139551781,
+          end: 1792682109717,
+          scores: [
+            0.9, 0.9, 0.9, 0.8, 0.8, 0.9, 0.9, 0.8, 0.9, 0.5, 0.5, 0.5, 0.3,
+            0.1, 0.2, 0.1,
+          ],
+          review:
+            "엔딩이 다 망치지 않았나 싶음 앞에 너무 청량하게 담겨서 엔딩이 2배 더 아쉬움",
+          rating: 7,
+          upTo: 16,
+        },
+      ],
+      notes: { 15: "진짜 엔딩 뭐야?" },
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1792927412469,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792139551781f199",
+      title: "나의 해방일지",
+      en: "My Liberation Notes",
+      tvId: 60691,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/397/993422.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/397/993422.jpg",
+      year: "2022",
+      network: "JTBC",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Family", "Romance"],
+        summary:
+          "It tells the story of three siblings who want to escape their stifling lives and a mysterious outsider who comes to their town.",
+        premiered: "2022-04-09",
+        ended: "2022-05-29",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 10,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792139551781,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792139551781,
+      touched: 1788856351781,
+      infoTried: true,
+    },
+    {
+      id: "1792163557557d56b",
+      title: "달의 연인",
+      en: "",
+      tvId: 18630,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/71/179341.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/71/179341.jpg",
+      year: "2016",
+      network: "SBS",
+      eps: 16,
+      info: {
+        genres: ["Fantasy", "Romance", "History"],
+        summary:
+          "When a total eclipse of the sun takes place, a 21st century woman, Go Ha Jin, is transported back in time to the Goryeo Dynasty of Korea. She wakes up in the body of 16-year-old Hae Soo, an aristocrat living with Lady Hae, her cousin who happens to be married to one of the sons of King Taejo. She soon befriends several of the princes, who find her carefree and exuberant attitude refreshing. Although she knows she should not get involved in palace intrigues over the succession to the throne, she inadvertently becomes a pawn in the struggle, as several of the Princes fall in love with her.",
+        premiered: "2016-08-29",
+        ended: "2016-11-01",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        1, 1, 1, 1, 1, 1, 1, 0.9, 0.8, 0.8, 0.7, 0.7, 0.7, 0.7, 0.6, 0.4,
+      ],
+      review:
+        "전반적으로 배우 라인업도 좋고 재미있으나 뒤로 갈수록 당황스럽게 어두워짐",
+      rating: 10,
+      keys: ["설렘", "여운"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792163557557,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792163557557,
+      touched: 1792674343280,
+      infoTried: true,
+    },
+    {
+      id: "17921679891800c51",
+      title: "악의 마음을 읽는 자들",
+      en: "Through the Darkness",
+      tvId: 59400,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/389/972574.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/389/972574.jpg",
+      year: "2022",
+      network: "SBS",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Thriller", "Mystery"],
+        summary:
+          "Through the Darkness is about a criminal profiler who struggles to read the minds of serial killers. Song Ha Young is a criminal profiler. He is calm and has charisma. He digs up cases and looks deeply into the human mind.",
+        premiered: "2022-01-14",
+        ended: "2022-03-12",
+      },
+      kind: "스릴러",
+      status: "done",
+      upTo: 12,
+      scores: [0.3, 0.9, 1, 0.8, 0.6, 0.6, 0.9, 0.1, 0.1, 0.5, null, null],
+      review: "",
+      rating: 8,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792167989180,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792167989180,
+      touched: 1792926864251,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17924576006707436",
+      title: "100일의 거짓말",
+      en: "100 Days of Deception",
+      tvId: 90249,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/645/1613484.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/645/1613484.jpg",
+      year: "2026",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Action", "Romance", "Thriller"],
+        summary:
+          'Set in Gyeongseong during the Japanese colonial period, the drama follows Ga Gyeong, the city\'s most talented pickpocket, who strikes a dangerous deal with the independence army and goes undercover at the Japanese Government-General of Joseon. Disguised as an employee, she is tasked with acting as a "fake spy" for just 100 days, but her mission slowly turns her into a real informant caught between survival, loyalty, and conviction.',
+        premiered: "2026-10-10",
+        ended: "",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        1,
+        0.8,
+        0.9,
+        0.8,
+        0,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "미스터 선샤인이랑 비교해서 보면 재미있을 거같음",
+      rating: 8,
+      keys: ["재밋음"],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792457600670,
+      history: [],
+      notes: { 0: "아직까진 재미있음" },
+      times: {},
+      savedAt: 1792457600670,
+      touched: 1792674203080,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792588910246db41",
+      title: "엄마친구아들",
+      en: "Love Next Door",
+      tvId: 74044,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/529/1324853.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/529/1324853.jpg",
+      year: "2024",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Romance"],
+        summary:
+          "A romantic comedy that tells the story of a woman trying to reboot her life after making mistakes, and her mother's friend's son, who is her living dark side.",
+        premiered: "2024-08-17",
+        ended: "2024-10-06",
+      },
+      kind: "로맨스",
+      status: "want",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792588910246,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792588910246,
+      touched: 1792911102859,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792589033348db7a",
+      title: "우리들의 블루스",
+      en: "Our Blues",
+      tvId: 60704,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/399/998175.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/399/998175.jpg",
+      year: "2022",
+      network: "tvN",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Family", "Romance"],
+        summary:
+          "An omnibus-style drama that tells the sweet, sour, and bitter life stories of diverse characters in the setting of Jeju Island.",
+        premiered: "2022-04-09",
+        ended: "2022-06-12",
+      },
+      kind: "휴먼",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792589033348,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792589033348,
+      touched: 1792589044148,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926704749126ca1",
+      title: "프로듀사",
+      en: "The Producers",
+      tvId: 10308,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/464/1162337.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/464/1162337.jpg",
+      year: "2015",
+      network: "KBS2",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "All-night meetings, nonstop stress and action. That's the life of a television variety show producer trying to put together a hit show and gain ratings while handling pressures from difficult stars and corporate executives who breathe down their necks. Baek Seung Chan is a fresh new producer-director (PD) who gave up law school to work in the exciting variety show division of a major television network. He works alongside the more seasoned veteran PDs Tak Ye Jin, a no-nonsense hot-shot who gets things done her way, and Ra Joon Mo, who is still waiting for his breakout hit series. As they work with temperamental stars like Cindy, a famous singer, can the PDs please everybody and get their jobs done?",
+        premiered: "2015-05-15",
+        ended: "2015-06-20",
+      },
+      kind: "코미디",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670474912,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670474912,
+      touched: 1792670474912,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670489186222e",
+      title: "오 나의 귀신님",
+      en: "Oh My Ghost",
+      tvId: 7139,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/460/1150603.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/460/1150603.jpg",
+      year: "2015",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "Na Bong-sun has an extremely timid personality and low self-esteem, doesn't have any close friends, and is constantly getting reprimanded at her job as an assistant chef at Sun Restaurant. She also occasionally sees ghosts, thanks to a shaman grandmother. One day, Bong-sun gets possessed by a lustful virgin ghost named Shin Soon-ae. To make up for the lack of romance in her short life and believing that only by losing her virginity will she be able to \"resolve her grudge\" and move on to the afterlife, Soon-ae is determined to seduce as many men as she can by possessing various women, and she finds the perfect vessel in Bong-sun.Bong-sun's boss is arrogant star chef Kang Sun-woo, whom she secretly has a crush on. Sun-woo hasn't dated anyone since getting his heart broken by his college friend Lee So-hyung, who's now a TV producer. But when Bong-sun seemingly gets rid of her shyness and suddenly changes into a confident, dynamic woman, she finally catches his eye. Meanwhile, the mystery surrounding Soon-ae's death involves Sun-woo's brother-in-law, kindly police officer Choi Sung-jae who may not be what he seems.",
+        premiered: "2015-07-03",
+        ended: "2015-08-22",
+      },
+      kind: "판타지",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670489186,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670489186,
+      touched: 1792670493451,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670496721d5c9",
+      title: "육룡이 나르샤",
+      en: "Six Flying Dragons",
+      tvId: 6201,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/23/59874.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/23/59874.jpg",
+      year: "2015",
+      network: "SBS",
+      eps: 50,
+      info: {
+        genres: ["Drama", "Action", "History"],
+        summary:
+          "A period drama that depicts the ambitions and success stories of six people with Lee Bang Won as the central figure. Lee Bang Won was the third king in the Joseon Dynasty. He helped his father King Taejo establish the Joseon Dynasty.",
+        premiered: "2015-10-05",
+        ended: "2016-03-22",
+      },
+      kind: "사극",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670496721,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670496721,
+      touched: 1792670509304,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926705595275a26",
+      title: "시크릿 가든",
+      en: "Secret Garden",
+      tvId: 3733,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/19/47635.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/19/47635.jpg",
+      year: "2010",
+      network: "SBS",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Comedy", "Fantasy"],
+        summary:
+          "Kim Joo-won is the arrogant, eccentric heir to a large company who is poised to inherit a large department store. He constantly rejects the girls his matchmaking mother sends his way. When he meets Gil Ra-im, a beautiful, driven stunt-woman, she changes his life as he becomes fascinated by her strength and vulnerability.One day, a magical incident occurs and they find that they have switched bodies.",
+        premiered: "2010-11-13",
+        ended: "2011-01-16",
+      },
+      kind: "판타지",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670559527,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670559527,
+      touched: 1792670564123,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267056674352b6",
+      title: "장난스런 키스",
+      en: "Mischievous Kiss",
+      tvId: 16345,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/462/1157245.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/462/1157245.jpg",
+      year: "2010",
+      network: "MBC",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "Based on a Japanese manga, Mischievous Kiss centers on a slow-bubbling romance between a sunny student and her popular classmate",
+        premiered: "2010-09-01",
+        ended: "2010-10-21",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670566743,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670566743,
+      touched: 1792670576192,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670582627037c",
+      title: "성균관 스캔들",
+      en: "Sungkyunkwan Scandal",
+      tvId: 17318,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/582/1456535.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/582/1456535.jpg",
+      year: "2010",
+      network: "KBS1",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Comedy", "History"],
+        summary:
+          "Sungkyunkwan Scandal is set in Sungkyunkwan University in the late Joseon era during the reign of King Jeongjo, revolving around the exploits and love stories of four youths. When her younger brother's illness worsens and their family is in danger of being evicted from their house for lack of money, Kim Yoon Hee enters the school under his name, disguised as a boy in her desperation to support him. There, she becomes friends with the intelligent and upright Lee Sun Joon, the playboy Goo Yong Ha and rebellious Moon Jae Shin.",
+        premiered: "2010-08-30",
+        ended: "2010-11-02",
+      },
+      kind: "코미디",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670582627,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670582627,
+      touched: 1792670588408,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670642554edbb",
+      title: "김비서가 왜 그럴까",
+      en: "What's Wrong with Secretary Kim",
+      tvId: 36183,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/579/1449676.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/579/1449676.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          "Lee Young's family runs a large firm in which Lee Young Joon works as vice-president. He is known to be rich, smart and handsome, but is known to be very arrogant. His secretary Kim Mi So, who works for them for many years, makes a decision which shocks him...",
+        premiered: "2018-06-06",
+        ended: "2018-07-26",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670642554,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670642554,
+      touched: 1792670651012,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670652844ab86",
+      title: "뷰티 인사이드",
+      en: "The Beauty Inside",
+      tvId: 38468,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/168/420067.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/168/420067.jpg",
+      year: "2018",
+      network: "jTBC",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "Top actress Han Se Kye is known to be a troublemaker and object to many rumours. While her life is for many a mystery, she actually suffers an unusual phenomenon in which her appearance changes to a complete different person once every month. One day she bumps into Seo Do Jae, an executive of an airline. Even though Seo Do Jae is unable to recognize faces, he tries his best to hide his issue and to memorize people by their habits and mannerisms.",
+        premiered: "2018-10-01",
+        ended: "2018-11-20",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.6, 0.5, 0.3, 0.3, 0.4, 0.4, 0.5, 0.7, 0.9, 0.8, 0.8, 0.7, 0.8, 0.7,
+        0.6, 0.6,
+      ],
+      review: "서브 커플이 더 재미있는 드라마 남주가 연기를 좀 못함",
+      rating: 6,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670652844,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670652844,
+      touched: 1792681318867,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670676207b4f3",
+      title: "라이브",
+      en: "Live",
+      tvId: 33835,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/146/366150.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/146/366150.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 18,
+      info: {
+        genres: ["Drama", "Thriller"],
+        summary:
+          "This is a drama which focus on the daily ins and outs of police officers who work as civil servants and peacekeepers.",
+        premiered: "2018-03-10",
+        ended: "2018-05-06",
+      },
+      kind: "휴먼",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670676207,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670676207,
+      touched: 1792670677628,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670701226f818",
+      title: "더 글로리 파트2",
+      en: "The Glory",
+      tvId: 65502,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/433/1084564.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/433/1084564.jpg",
+      year: "2023",
+      network: "Netflix",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Thriller", "Mystery"],
+        summary:
+          "Moon Dong Eun had to drop out of school because of school violence. Since then, she has lived with thoughts of revenge. Years later, her main abuser got married and gave birth to a child. The former victim becomes this child's homeroom teacher when he goes to elementary school. So begins her long and difficult path of revenge. It targets not only the main offender, but also all those who watched the violence, but did nothing. Joo Ye Jung is a carefree and smiling guy. Instead of being the fairy prince Dong Eun, he decides to become the means of her revenge.",
+        premiered: "2022-12-30",
+        ended: "2023-03-10",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670701226,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670701226,
+      touched: 1792769242797,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670712921fcb8",
+      title: "구미호뎐",
+      en: "Tale of the Nine Tailed",
+      tvId: 49996,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/454/1135598.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/454/1135598.jpg",
+      year: "2020",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Thriller", "Supernatural"],
+        summary:
+          "Tale of the Nine Tailed follows the life of the gumiho, who once ruled as a living god of the Baekdudaegan Mountain Range but now works as a sort of public official between this world and the underworld. His main job is to clean up the mess left behind by those who disturb the world of the living while hiding behind the guise of ghost tales.",
+        premiered: "2020-10-07",
+        ended: "2023-06-11",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670712921,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670712921,
+      touched: 1792670715707,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926707245382912",
+      title: "마스크걸",
+      en: "Mask Girl",
+      tvId: 66448,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/481/1202584.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/481/1202584.jpg",
+      year: "2023",
+      network: "Netflix",
+      eps: 7,
+      info: {
+        genres: ["Drama", "Crime", "Thriller"],
+        summary:
+          "An office worker who is insecure about her looks becomes a masked internet personality by night --- until a chain of ill-",
+        premiered: "2023-08-18",
+        ended: "2023-08-18",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [null, null, null, null, null, null, null],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670724538,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670724538,
+      touched: 1792670726960,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267072838832d7",
+      title: "킹더랜드",
+      en: "King the Land",
+      tvId: 64352,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/461/1153424.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/461/1153424.jpg",
+      year: "2023",
+      network: "JTBC",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Romance"],
+        summary:
+          "Set in the backdrop of a hotelier's dream, the VVIP business lounge 'King the Land', it depicts the story of a man who cannot withstand a fake smile and a woman who always has to smile brightly.",
+        premiered: "2023-06-17",
+        ended: "2023-08-06",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670728388,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670728388,
+      touched: 1792670731528,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267073389699d3",
+      title: "경이로운 소문",
+      en: "The Uncanny Counter",
+      tvId: 51521,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/470/1175302.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/470/1175302.jpg",
+      year: "2020",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Action", "Supernatural"],
+        summary:
+          'The Uncanny Counter is about demon hunters called "Counters" who come to Earth and disguise themselves as employees at a noodle restaurant in order to capture evil spirits.',
+        premiered: "2020-11-28",
+        ended: "2023-09-03",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670733896,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670733896,
+      touched: 1792671367118,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926707434908b27",
+      title: "악귀",
+      en: "Revenant",
+      tvId: 66009,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/463/1159188.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/463/1159188.jpg",
+      year: "2023",
+      network: "SBS",
+      eps: 12,
+      info: {
+        genres: ["Thriller", "Mystery", "Supernatural"],
+        summary:
+          "Outside the door is a different world. When you open the door, there is a demon there. This is an occult mystery thriller in which a woman possessed by a demon and a man who can see the demon dig into the mysterious death surrounding five bodies.",
+        premiered: "2023-06-23",
+        ended: "2023-07-29",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670743490,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670743490,
+      touched: 1792670745910,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670749182c07b",
+      title: "퀸메이커",
+      en: "Queenmaker",
+      tvId: 66447,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/456/1141980.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/456/1141980.jpg",
+      year: "2023",
+      network: "Netflix",
+      eps: 11,
+      info: {
+        genres: ["Drama", "Legal"],
+        summary:
+          "Strategy. Influence. Corruption. An unlikely pair of accomplished women joins forces to go up against a powerful conglomerate for the mayorship of Seoul.",
+        premiered: "2023-04-14",
+        ended: "",
+      },
+      kind: "휴먼",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670749182,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670749182,
+      touched: 1792670753612,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670755482279d",
+      title: "연인",
+      en: "My Dearest",
+      tvId: 70147,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/486/1215120.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/486/1215120.jpg",
+      year: "2023",
+      network: "MBC",
+      eps: 21,
+      info: {
+        genres: ["Drama", "Romance", "History"],
+        summary:
+          "A love-story between a noble woman and a mysterious man who shows up in her hometown set in the 1600s during the Qing invasion. Yu Gil Chae is a pretty, bubbly and a bit spoiled young lady who's named as the 99 tailed fox of Neunggun-ri. She is a bit of an outcast too because other young ladies are jealous of her. They seem to think she's too straight forward and her behavior is inappropriate for a young lady while young noble men think highly of her. Gil Chae knows how to get men to fall for her but fails to capture the heart of the person she likes. Lee Jang Hyun is a mysterious man who suddenly appears in the Neunggun-ri social scene one day. Nobody really knows about him. Young nobles don't like him while he has elderly people wrapped around his finger. He's been dating around a lot but becomes curious about a certain 99 tailed fox. And one day, the said fox crash lands to his arm literally. With the brewing war, the pair find themselves separated even before they start to make sense of their feelings.",
+        premiered: "2023-08-04",
+        ended: "2023-11-18",
+      },
+      kind: "사극",
+      status: "done",
+      upTo: 21,
+      scores: [
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 0.8, 0.8, 0.9, 0.7, 0.7, 0.9, 1, 0.9, 0.5,
+        0.6, 0.6, 0.3,
+      ],
+      review: "",
+      rating: 8,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670755482,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670755482,
+      touched: 1792926598269,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926707607926804",
+      title: "일타 스캔들",
+      en: "Crash Course in Romance",
+      tvId: 64231,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/434/1087175.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/434/1087175.jpg",
+      year: "2023",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Romance"],
+        summary:
+          "A romantic comedy between Nam Haeng-seon, the owner of a side dish shop who belatedly enters the entrance exam hell, and Choi Chi-yeol, a one-shot instructor who becomes a star in Korea's No. 1 private education.",
+        premiered: "2023-01-14",
+        ended: "2023-03-05",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670760792,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670760792,
+      touched: 1792670765188,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670766754b1d1",
+      title: "나쁜 엄마",
+      en: "The Good Bad Mother",
+      tvId: 66735,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/454/1136784.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/454/1136784.jpg",
+      year: "2023",
+      network: "jTBC",
+      eps: 14,
+      info: {
+        genres: ["Drama", "Comedy", "Crime"],
+        summary:
+          'A single mom who has been widowed at a young age, Yeong-soon runs a pig farm, and raises her son Kang-ho by herself. She becomes a "bad mother" - hard on her son because she doesn\'t want him to grow up penniless nor powerless. Thanks to her discipline, Kang-ho grows up to be a prominent prosecutor, but loses his memory due to an unfortunate accident and becomes a 7-year-old again. Young-soon decides to become a "bad mother" again for Kang-ho in this comforting and touching comedy series that tracks the journey of recovery between mother and son.',
+        premiered: "2023-04-26",
+        ended: "2023-06-08",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670766754,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670766754,
+      touched: 1792670769893,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926708374667a29",
+      title: "수상한 파트너",
+      en: "Suspicious Partner",
+      tvId: 26157,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/111/278231.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/111/278231.jpg",
+      year: "2017",
+      network: "SBS",
+      eps: 40,
+      info: {
+        genres: ["Comedy", "Romance", "Thriller"],
+        summary:
+          "A forgetful killer can be a dangerous thing. Noh Ji Wook is a prosecutor who changes jobs to become a private attorney at a powerful law firm. Meanwhile, Eun Bong Hee is a prosecutor trainee who works with prosecutor Cha Yoo Jung, Ji Wook's ex-girlfriend who desperately wants to win him back. Attorney Ji Eun Hyuk is a longtime family friend of Ji Wook's but harbors some resentment about their different family circumstances.When a murderer strikes, Bong Hee suddenly finds herself as a suspect in the murder. But it appears the real killer has amnesia, and the killer keeps coming after Bong Hee and Ji Wook. Can the two team up to catch the forgetful killer?",
+        premiered: "2017-05-10",
+        ended: "2017-07-13",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670837466,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670837466,
+      touched: 1792670841104,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926708426062bd0",
+      title: "사랑의 온도",
+      en: "Temperature of Love",
+      tvId: 31524,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/127/318286.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/127/318286.jpg",
+      year: "2017",
+      network: "SBS",
+      eps: 40,
+      info: {
+        genres: ["Comedy", "Romance"],
+        summary:
+          'Lee Hyun Soo is an aspiring drama series writer. She uses "Jane" as her username and begins chatting online with username "Good Soup" who is actually Ohn Jung Sun. Jung Sun dreams of becoming a French food chef. They then meet in real life and their relationship grows.',
+        premiered: "2017-09-18",
+        ended: "2017-11-21",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670842606,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670842606,
+      touched: 1792670849678,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670850807b1cf",
+      title: "로봇이 아니야",
+      en: "I'm Not a Robot",
+      tvId: 32272,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330922.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/532/1330922.jpg",
+      year: "2017",
+      network: "MBC",
+      eps: 32,
+      info: {
+        genres: ["Drama", "Romance", "Science-Fiction"],
+        summary:
+          "The story of a man who lives an isolated life due to a severe allergy to other people but meets and falls in love with a woman who pretends to be a robot.",
+        premiered: "2017-12-06",
+        ended: "2018-01-25",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670850807,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670850807,
+      touched: 1792670861645,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926708852568428",
+      title: "또 오해영",
+      en: "Another Miss Oh",
+      tvId: 14833,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/632/1581266.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/632/1581266.jpg",
+      year: "2016",
+      network: "tvN",
+      eps: 18,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "Two women working in the same industry with the exact same name keep getting their lives entangled both professionally and personally.",
+        premiered: "2016-05-02",
+        ended: "2016-06-28",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670885256,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670885256,
+      touched: 1792670892994,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267090028367fb",
+      title: "더블유",
+      en: "W",
+      tvId: 14842,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/68/170142.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/68/170142.jpg",
+      year: "2016",
+      network: "MBC",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance", "Thriller"],
+        summary:
+          "After being pulled into the webtoon world created by her father, a surgical resident gets entangled in a murder mystery involving the story's hero.",
+        premiered: "2016-07-20",
+        ended: "2016-09-14",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670900283,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670900283,
+      touched: 1792670905418,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926709071354dcf",
+      title: "태양의 후예",
+      en: "Descendants of the Sun",
+      tvId: 9426,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/46/115575.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/46/115575.jpg",
+      year: "2016",
+      network: "KBS2",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance", "Medical"],
+        summary:
+          "This story tells of doctors stationed in the fictional war zone of Urk, and follows the love story that develops between a surgeon and a special forces officer, both elite in their respective fields. The story tracks both their personal and professional struggles while exploring issues about the value of life.",
+        premiered: "2016-02-24",
+        ended: "2016-04-14",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670907135,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670907135,
+      touched: 1792670912287,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926709143178851",
+      title: "구르미 그린 달빛",
+      en: "Love in the Moonlight",
+      tvId: 14844,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/76/190752.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/76/190752.jpg",
+      year: "2016",
+      network: "KBS2",
+      eps: 18,
+      info: {
+        genres: ["Comedy", "Romance", "History"],
+        summary:
+          "Hong Ra On, disguises herself as a man and counsels men on dating. Due to a love letter she wrote for a client, she meets Lee Yung---future Crown Prince Hyomyung. Hong Ra On is unaware that he is the Crown Prince and Lee Yung is unaware that Hong Ra On is a woman. The Crown Prince becomes interested in Hong Ra On. As nobody is aware of Ra On being a woman, she is sold to the palace and becomes an eunuch...",
+        premiered: "2016-08-22",
+        ended: "2016-10-18",
+      },
+      kind: "사극",
+      status: "done",
+      upTo: 18,
+      scores: [
+        0.8, 1, 0.9, 0.8, 1, 1, 1, 0.8, 0.6, 0.6, 0.8, 0.8, 1, 0.8, 1, 0.7, 0.9,
+        1,
+      ],
+      review: "해피엔딩인 몇 안되는 사극, 동시에 엄청 설레는 조합 !",
+      rating: 9,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792670914317,
+      history: [],
+      notes: { 6: "정원씬 색감이 너무 이쁨!", 8: "박보검의 공개 고백씬 .." },
+      times: {},
+      savedAt: 1792670914317,
+      touched: 1792926809491,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792670920617713e",
+      title: "낭만닥터 김사부 3",
+      en: "Romantic Doctor, Teacher Kim",
+      tvId: 19333,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/458/1146656.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/458/1146656.jpg",
+      year: "2023",
+      network: "SBS",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Romance", "Medical"],
+        summary:
+          "Both Kang Dong Joo and Yoon Seo Jung worked their backside off to become a doctor. For Kang Dong Joo, it was to beat someone out there and for Yoon Seo Jung, it was to be recognized by someone. The humanist drama depicts how the two doctors meet the oddball doctor, Kim Sa Bu and become to realize the true value of life and solace of love.",
+        premiered: "2016-11-07",
+        ended: "2023-06-17",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792670920617,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792670920617,
+      touched: 1792929589027,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671043973e06d",
+      title: "질투의 화신",
+      en: "Jealousy Incarnate",
+      tvId: 16143,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/71/179798.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/71/179798.jpg",
+      year: "2016",
+      network: "SBS",
+      eps: 24,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "The drama depicts romance as well as intense competitive rivalry between an anchor and a weather forecaster working together for a television news show.",
+        premiered: "2016-08-24",
+        ended: "2016-11-10",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671043973,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671043973,
+      touched: 1792671052308,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926710560384655",
+      title: "푸른 바다의 전설",
+      en: "The Legend of the Blue Sea",
+      tvId: 18628,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330925.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/532/1330925.jpg",
+      year: "2016",
+      network: "SBS",
+      eps: 20,
+      info: {
+        genres: ["Comedy", "Fantasy", "Romance"],
+        summary:
+          "How can a mermaid from the Joseon era survive in modern-day Seoul? Shim Chung is a mermaid who finds herself transplanted to modern times. She is caught by Heo Joon Jae, a charming but cold con artist who is the doppelgänger for Kim Moon, the son of a nobleman from the Joseon Dynasty. But in the present time, Joon Jae works with Jo Nam Doo, a skilled conman who guides Joon Jae to become a genius scammer. But Joon Jae's friend, Cha Shi Ah, who works as a researcher at KAIST, may be Chung's only hope for surviving in her strange new world.",
+        premiered: "2016-11-16",
+        ended: "2017-01-25",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792671056038,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671056038,
+      touched: 1792671059385,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267108802701ed",
+      title: "나의 완벽한 비서",
+      en: "Love Scout",
+      tvId: 80927,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/620/1552267.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/620/1552267.jpg",
+      year: "2025",
+      network: "SBS",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "A successful and confident woman, Kang Ji Yun, is the CEO of a headhunting company. To survive in the fiercely competitive headhunting field, she puts everything she has into her work. Outside of her job, she doesn't know how to do anything. She has a secretary named Yoo Eun Ho who takes care of pretty much everything for her. Unlike his boss, the secretary is friendly, well-mannered, and considerate of other people. He is a single father, who is also good at parenting and housework.",
+        premiered: "2025-01-03",
+        ended: "2025-02-14",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671088027,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671088027,
+      touched: 1792671099709,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671108357b53a",
+      title: "원경",
+      en: "The Queen Who Crowns",
+      tvId: 81196,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/546/1365195.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/546/1365195.jpg",
+      year: "2025",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "History"],
+        summary:
+          "Queen Won Kyung, born to Min Je during the Goryeo period, came from a prestigious family of high-ranking officials. Married to Lee Bang Won, son of King Taejo, she supported her husband's ambitions to become King Taejong after his father bypassed him for the throne. As a kingmaker, she helped establish a new regime. However, their relationship soured after Lee Bang Won became king, took concubines, and sought to curb Queen Won Kyung's influence and that of her family.",
+        premiered: "2025-01-06",
+        ended: "2025-02-11",
+      },
+      kind: "사극",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671108357,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671108357,
+      touched: 1792671111189,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179267111309744e2",
+      title: "언젠가는 슬기로운 전공의생활",
+      en: "Resident Playbook",
+      tvId: 78417,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/565/1413772.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/565/1413772.jpg",
+      year: "2025",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Medical"],
+        summary:
+          "Set at the Jongno branch of Yulje Medical Center, the series follows the hospital lives and turbulent friendships of young obstetrics and gynecology residents who proudly enter the unpopular department in an era of low birth rates.",
+        premiered: "2025-04-12",
+        ended: "2025-05-18",
+      },
+      kind: "메디컬",
+      status: "done",
+      upTo: 12,
+      scores: [0.6, 0.6, 0.8, 0.2, 0.8, 0.5, 0.5, 0.1, 0.3, 0.6, 0.7, 0.6],
+      review: "의사생활만큼 재밌지는 않지만 킬링타임으로는 볼만함",
+      rating: 6,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671113097,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671113097,
+      touched: 1792926888981,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671141687d1e7",
+      title: "폭군의 셰프",
+      en: "Bon Appétit, Your Majesty",
+      tvId: 85359,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/580/1452461.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/580/1452461.jpg",
+      year: "2025",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Food", "History"],
+        summary:
+          "What happens when a Michelin-worthy chef from Paris accidentally time-slips to the Joseon dynasty? She meets the King, a fearsome tyrant with an unexpectedly refined palate. In a bid to survive palace intrigue and royal appetites, she whips up dazzling fusion dishes that tempt even the coldest heart. But as sparks fly in the royal kitchen, a slow-burn romance simmers beneath the surface.",
+        premiered: "2025-08-23",
+        ended: "2025-09-28",
+      },
+      kind: "사극",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671141687,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671141687,
+      touched: 1792671146541,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671148086e448",
+      title: "뿌리깊은 나무",
+      en: "A Tree with Deep Roots",
+      tvId: 19915,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/70/175956.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/70/175956.jpg",
+      year: "2011",
+      network: "SBS",
+      eps: 24,
+      info: {
+        genres: ["Drama", "Mystery", "History"],
+        summary:
+          "Set up in the early reign of King Sejong, this drama started when Shim Ohn (King's father in law) and his whole household were framed to execution by the former King Taejong. Two young slaves survive and continue the living with the aim of getting revenge for the innocents' deaths. While King Sejong feeling guilty for not being able to rescue his people, he is determined to create hangul through secret organisation. However, the obstacles started when one by one of his people got involved in serial murder.",
+        premiered: "2011-10-05",
+        ended: "2011-12-24",
+      },
+      kind: "스릴러",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671148086,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671148086,
+      touched: 1792672427810,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671153191dfc2",
+      title: "드림하이",
+      en: "Dream High",
+      tvId: 3633,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/49/123557.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/49/123557.jpg",
+      year: "2011",
+      network: "KBS2",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Music", "Romance"],
+        summary:
+          "Dream High takes place at Kirin High School of Art and follows the lives of students as they aspire to become superstars.",
+        premiered: "2011-01-03",
+        ended: "2012-03-20",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671153191,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671153191,
+      touched: 1792671157660,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926711591318139",
+      title: "내 남편과 결혼해줘",
+      en: "Marry My Husband",
+      tvId: 72935,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/619/1549498.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/619/1549498.jpg",
+      year: "2024",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "Kang Ji-won, a terminally ill cancer patient, is killed by her husband and best friend after she witnesses them having an affair. She wakes up 10 years before the incident and decides to seek revenge with the help of Yu Ji-hyuk, a director at the company where she works. Now, she must reclaim her fate and eliminate the trash from her life.",
+        premiered: "2024-01-01",
+        ended: "2024-02-20",
+      },
+      kind: "판타지",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671159131,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671159131,
+      touched: 1792671164946,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671184664c476",
+      title: "굿파트너",
+      en: "Good Partner",
+      tvId: 78050,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/525/1312893.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/525/1312893.jpg",
+      year: "2024",
+      network: "SBS",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Legal"],
+        summary:
+          "Facing her own divorce, seasoned divorce lawyer Cha Eun Kyung has grown jaded with the concept of Justice, instead opting for the path with the most monetary gain. This changes after she begins working with passionate rookie lawyer Han Yoo Ri, who believes in helping people regardless of the money.",
+        premiered: "2024-07-12",
+        ended: "2026-11-21",
+      },
+      kind: "코미디",
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792671184664,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671184664,
+      touched: 1792671187057,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671268490de02",
+      title: "유미의 세포들 3",
+      en: "Yumi's Cells",
+      tvId: 56626,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/621/1553740.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/621/1553740.jpg",
+      year: "2021",
+      network: "TVING",
+      eps: 14,
+      info: {
+        genres: ["Comedy", "Anime", "Romance"],
+        summary:
+          "Yumi is an ordinary single working woman. She is not good at expressing her feelings. Through her romantic relationship and work, she grows as a person and finds happiness in her daily life. Yumi has cells in her brain that represent different emotions like love, violence, rationality, good, and bad. These tiny cells in her brain work actively for her. They deal with her emotions and troubles.",
+        premiered: "2021-09-17",
+        ended: "2026-05-04",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 14,
+      scores: [
+        0.9, 0.9, 0.9, 0.7, 0.8, 0.9, 0.7, 0.7, 0.8, 0.9, 0.8, 0.7, 1, 1,
+      ],
+      review: "유미의 상황이 나같아서 몰입하면서 볼 수 있었던 거 같음",
+      rating: 8,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671268490,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671268490,
+      touched: 1792769409381,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792671390016d6cc",
+      title: "응답하라 1997",
+      en: "Answer Me 1997",
+      tvId: 7266,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/467/1169430.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/467/1169430.jpg",
+      year: "2012",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "This drama will focus on the extreme fan culture that emerged in the 1990s when idol groups took center stage and K-pop was blossoming.It tells the story of 6 former high school friends from a school in Busan who meet again in 2012 and brings back memories to 1997 when they were still high school students. Moving back and forth between the '90s and today, the story centers on the life of Sung Shi Won, who idolizes boyband H.O.T., and her 5 high school friends.",
+        premiered: "2012-07-24",
+        ended: "2012-09-18",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 8,
+      keys: ["휴먼", "우정", "로맨스"],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792671390016,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792671390016,
+      touched: 1792672041092,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926724521999c74",
+      title: "미지의 서울",
+      en: "Our Unwritten Seoul",
+      tvId: 84106,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/566/1416522.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/566/1416522.jpg",
+      year: "2025",
+      network: "tvN",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Family", "Romance"],
+        summary:
+          "Our Unwritten Seoul centers on twin sisters, Yoo Mi Ji and Yoo Mi Rae — identical in appearance yet opposite in personality and life paths. After a complicated twist of fate, they swap identities, each sister navigating unfamiliar challenges to discover love and their true selves.",
+        premiered: "2025-05-24",
+        ended: "2025-06-29",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 12,
+      scores: [0.6, 0.5, 0.1, 0.3, 0.3, 0.4, 0.5, 0.2, 0.3, 0.9, 0.5, 0.4],
+      review: "",
+      rating: 6,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792672452199,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792672452199,
+      touched: 1792672559142,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792680189193eb79",
+      title: "멋진 신세계",
+      en: "My Royal Nemesis",
+      tvId: 90692,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/624/1561134.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/624/1561134.jpg",
+      year: "2026",
+      network: "SBS",
+      eps: 14,
+      info: {
+        genres: ["Comedy", "Fantasy", "Romance"],
+        summary:
+          "A Joseon-era villain doomed to die opens her eyes in modern-day Seoul — where a ruthless chaebol heir may be her last chance to rewrite her fate.",
+        premiered: "2026-05-08",
+        ended: "2026-06-20",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 14,
+      scores: [
+        0.8, 0.7, 0.6, 0.6, 0.6, 0.9, 0.8, 0.7, 0.6, 1, 0.7, 0.8, 0.8, 0.7,
+      ],
+      review:
+        "음 약간 병맛? 인듯 아닌듯 허남준의 재발견 같은 드라마 설레긴 하는데 여주 너무 오바함",
+      rating: 7,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792680189193,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792680189193,
+      touched: 1792682392504,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926803768639d32",
+      title: "이 사랑 통역 되나요?",
+      en: "Can This Love Be Translated?",
+      tvId: 80053,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/608/1520438.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/608/1520438.jpg",
+      year: "2026",
+      network: "Netflix",
+      eps: 12,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          "The emotions of a celebrity and her interpreter get lost in translation as they travel the world filming a TV show. Will love find its own language?",
+        premiered: "2026-01-16",
+        ended: "2026-01-16",
+      },
+      kind: "휴먼",
+      status: "done",
+      upTo: 12,
+      scores: [1, 1, 1, 1, 1, 1, 0.9, 0.9, 1, 1, 0.9, 0.9],
+      review: "두번 보니까 첫번째 봤을때랑 느낌이 좀 달랐음!!",
+      rating: 9,
+      keys: [],
+      liked: true,
+      watchLabel: "2회차",
+      watchStart: 1792681772502,
+      history: [
+        {
+          label: "1회차",
+          start: 1792680376863,
+          end: 1792681772502,
+          scores: [1, 1, 1, 1, 0.8, 0.8, 0.6, 0.6, 0.8, 0.6, 0.6, 0.7],
+          review:
+            "씁 뭔가 내가 생각한 전개는 아니였음 로맨스가 더 드러날줄 알았는데 좀 애매",
+          rating: 7,
+          upTo: 12,
+        },
+      ],
+      notes: {},
+      times: {},
+      savedAt: 1792680376863,
+      touched: 1792929395583,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179268066526946bb",
+      title: "환혼 1",
+      en: "Alchemy of Souls",
+      tvId: 62248,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/609/1523773.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/609/1523773.jpg",
+      year: "2022",
+      network: "tvN",
+      eps: 20,
+      info: {
+        genres: ["Action", "Fantasy", "Romance"],
+        summary:
+          'Set in a fictional country called Daeho that does not exist in history or on maps, it is about the love and growth of young mages as they overcome their twisted fates due to a magic spell known as the "alchemy of souls", which allows souls to switch bodies. It follows the story of an elite assassin named Naksu, whose soul is accidentally trapped inside the weak body of Moo Duk—Jang Wook\'s servant from a powerful and noble family in the country. The young master of the Jang Family, Jang Wook, holds a dark secret about his scandalous birth. He wants the formidable assassin to help change his destiny.',
+        premiered: "2022-06-18",
+        ended: "2023-01-08",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 20,
+      scores: [
+        1, 1, 1, 1, 0.9, 0.9, 1, 0.9, 0.9, 0.9, 0.9, 1, 1, 1, 0.9, 0.8, 1, 0.9,
+        0.6, 0.2,
+      ],
+      review: "",
+      rating: 8,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792680665269,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792680665269,
+      touched: 1792926601643,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179268079897529b4",
+      title: "알고있지만,",
+      en: "Nevertheless,",
+      tvId: 55250,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/326/815740.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/326/815740.jpg",
+      year: "2021",
+      network: "jTBC",
+      eps: 10,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          "Park Jae Eon is a university student, majoring in art. He seems nice to everyone and he is usually cheerful. Yet, he is really indifferent to others and he doesn't want to have a romantic relationship. Unexpectedly, he fall for Yoo Na Bi and begins to change. Yoo Na Bi is an art srudent at the same university as Park Jae Eon. In her past, she broke up with her first love due to his unfaithful ways. After that, she decided to become unswayed by love. She then meets Park Jae Eon and develops feelings for him.",
+        premiered: "2021-06-19",
+        ended: "2021-08-21",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 10,
+      scores: [0.8, 1, 0.9, 0.8, 0.7, 0.9, 0.7, 0.4, 0.3, 0.2],
+      review: "",
+      rating: 6,
+      keys: [],
+      liked: true,
+      watchLabel: "1회차",
+      watchStart: 1792680798975,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792680798975,
+      touched: 1792926604457,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926810890757457",
+      title: "어쩌다 발견한 하루",
+      en: "Extraordinary You",
+      tvId: 42757,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/211/527722.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/211/527722.jpg",
+      year: "2019",
+      network: "MBC",
+      eps: 32,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          'It tells the story of a girl who realizes that she is a supporting character inside a romance manga named "Secret". She tries to change the fixed story for her love and life.',
+        premiered: "2019-10-02",
+        ended: "2019-11-21",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 32,
+      scores: [
+        0.4,
+        0.4,
+        0.4,
+        0.4,
+        0.3,
+        0.3,
+        0.3,
+        0.3,
+        0.2,
+        0.2,
+        0.1,
+        0.1,
+        0.1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "남주나 전개가 재밌긴 하나 다음화가 별로 안 궁금함",
+      rating: 5,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792681089075,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792681089075,
+      touched: 1792681125213,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926812427945fa1",
+      title: "아는 와이프",
+      en: "Familiar Wife",
+      tvId: 36193,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/160/400828.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/160/400828.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "A married couple suddenly finds themselves living entirely different lives after their fates magically change through an unexpected incident.",
+        premiered: "2018-08-01",
+        ended: "2018-09-20",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.4,
+        0.5,
+        0.3,
+        0.3,
+        0.1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 3,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792681242794,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792681242794,
+      touched: 1792926557844,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926813281944457",
+      title: "황후의 품격",
+      en: "The Last Empress",
+      tvId: 39121,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/563/1409100.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/563/1409100.jpg",
+      year: "2018",
+      network: "SBS",
+      eps: 52,
+      info: {
+        genres: ["Drama", "Fantasy", "Romance"],
+        summary:
+          "Set in an alternate universe, in which Korea is a constitutional monarchy in 2018, Oh Sunny is a bright and vivacious musical actress who marries the emperor. She becomes involved in the palace power struggle and a mysterious murder that sets off events that threaten the monarchy itself, while searching for true love and happiness.",
+        premiered: "2018-11-21",
+        ended: "2019-02-21",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 52,
+      scores: [
+        0.4, 0.3, 0.3, 0.4, 0.4, 0.4, 0.5, 0.5, 0.7, 0.8, 0.8, 0.6, 0.5, 0.5,
+        0.5, 0.4, 0.3, 0.3, 0.2, 0.2, 0.2, 0.2, 0.2, 0.3, 0.3, 0.4, 0.4, 0.5,
+        0.4, 0.4, 0.4, 0.5, 0.5, 0.6, 0.6, 0.5, 0.4, 0.4, 0.4, 0.5, 0.4, 0.3,
+        0.3, 0.3, 0.2, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1,
+      ],
+      review:
+        "아줌마들이 왜 막장드라마를 보는 지 알 거 같은 느낌..? 그치만 뒤로 갈수록 임펙트 없음",
+      rating: 6,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792681328194,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792681328194,
+      touched: 1792681401598,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "17926814033144646",
+      title: "알함브라 궁전의 추억",
+      en: "Memories of the Alhambra",
+      tvId: 38250,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/173/433813.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/173/433813.jpg",
+      year: "2018",
+      network: "tvN",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Comedy", "Romance"],
+        summary:
+          "Yoo Jin Woo is the CEO of an investment company. He has good sense at his work, a strong adventurous spirit and a strong desire for winning. Yoo Jin Woo is going through a hard time emotionally due to things like betrayal from his friends. He visits Granada, Spain on business and stays at an old hostel run by Jung Hee Joo. There, Yoo Jin Woo gets involved in a strange affair.",
+        premiered: "2018-12-01",
+        ended: "2019-01-20",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        0.3,
+        0.4,
+        0.4,
+        0.3,
+        0.2,
+        0.1,
+        0.1,
+        0.1,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: 3,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792681403314,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792681403314,
+      touched: 1792926608985,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792681493004a360",
+      title: "힘쎈여자 도봉순",
+      en: "Strong Woman Do Bong Soon",
+      tvId: 18627,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/532/1331189.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/532/1331189.jpg",
+      year: "2017",
+      network: "jTBC",
+      eps: 16,
+      info: {
+        genres: ["Comedy", "Action", "Fantasy"],
+        summary:
+          "Strong Woman Do Bong Soon tells the story about Do Bong Soon who is a woman born with Herculean strength, anything she touches with too much force crumbles in her hands. Ahn Min Hyuk is her love interest and he is an extraordinary second-generation chaebol with crazy tendencies. Meanwhile, Gook Doo is the guy who's harbored a one-sided crush on the heroine.",
+        premiered: "2017-02-24",
+        ended: "2017-04-15",
+      },
+      kind: null,
+      status: "done",
+      upTo: 16,
+      scores: [0.6, 0.6, 0.6, 0.8, 0.8, 0.9, 1, 1, 1, 1, 1, 0.9, 0.9, 1, 1, 1],
+      review: "서브 남주 왜저래",
+      rating: 8,
+      keys: [],
+      liked: true,
+      watchLabel: "2회차",
+      watchStart: 1792681550650,
+      history: [
+        {
+          label: "1회차",
+          start: 1792681493004,
+          end: 1792681550650,
+          scores: [
+            0.7, 0.8, 0.9, 0.7, 0.8, 1, 1, 0.8, 0.9, 1, 0.9, 0.8, 0.9, 1, 1, 1,
+          ],
+          review:
+            "여주 남주 아주 잘어울림 로맨스만이 아니라 스릴러가 겹쳐 있어서 지루하지 않음 박보영 개귀여움 !",
+          rating: 8,
+          upTo: 16,
+        },
+      ],
+      notes: {},
+      times: {},
+      savedAt: 1792681493004,
+      touched: 1792681569153,
+      infoTried: true,
+    },
+    {
+      id: "17926815840713e22",
+      title: "쌈 마이웨이",
+      en: "Fight for My Way",
+      tvId: 26158,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/111/279504.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/111/279504.jpg",
+      year: "2017",
+      network: "KBS2",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance"],
+        summary:
+          "Fight for My Way is about two individuals who have been living every day stuck in the daily grind. Without the connections, money, or education necessary to advance, they've been unable to escape their third-rate lives.",
+        premiered: "2017-05-22",
+        ended: "2017-07-11",
+      },
+      kind: "로맨스",
+      status: "done",
+      upTo: 16,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "남사친 여사친이 없음을 알려주는 드라마..",
+      rating: 9,
+      keys: [],
+      liked: true,
+      watchLabel: "3회차",
+      watchStart: 1792681666588,
+      history: [
+        {
+          label: "1회차",
+          start: 1792681584071,
+          end: 1792681628739,
+          scores: [
+            0.9, 0.9, 0.9, 1, 1, 1, 1, 1, 1, 1, 0.8, 0.8, 1, 1, 0.9, 0.9,
+          ],
+          review:
+            "20대의 마음을 투영한 거같은 드라마 김지원이랑 박서준은 당연히 연기 잘하고 나머지 조연배우들도 연기 개잘함",
+          rating: 10,
+          upTo: 16,
+        },
+        {
+          label: "2회차",
+          start: 1792681628739,
+          end: 1792681666588,
+          scores: [
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+            null,
+          ],
+          review: "2번째 보니 설이 주만이 커플이 되게 현실적이라는 생각이 듦",
+          rating: 9,
+          upTo: 16,
+        },
+      ],
+      notes: {},
+      times: {},
+      savedAt: 1792681584071,
+      touched: 1792681696791,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "1792682915738d596",
+      title: "SKY 캐슬",
+      en: "Sky Castle",
+      tvId: 39318,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/174/435629.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/174/435629.jpg",
+      year: "2018",
+      network: "jTBC",
+      eps: 20,
+      info: {
+        genres: ["Drama", "Comedy", "Family"],
+        summary:
+          "Sky Castle is set in a four-story apartment building in Seoul's suburbs, which is inhabited by some professionals such as judges, prosecutors, doctors, professors and their wives.It will depict their efforts to have their children admitted into good universities. Some grew up in families with many generations of doctors or lawyers. Thus, their ambitions will be shown with comedy and realism.",
+        premiered: "2018-11-23",
+        ended: "2019-02-01",
+      },
+      kind: null,
+      status: "done",
+      upTo: 20,
+      scores: [
+        1, 0.8, 0.7, 0.7, 0.7, 0.8, 0.8, 0.6, 0.8, 0.8, 0.6, 0.6, 0.7, 0.8, 0.8,
+        0.6, 0.5, 0.6, 0.4, 0.1,
+      ],
+      review:
+        "이거 볼때 중학생이였었는데 입시가 이런거라고..? 하며 심란해했었던 기억이 남",
+      rating: 8,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792682915738,
+      history: [],
+      notes: { 0: "처음부터 파격적이게 시작함" },
+      times: {},
+      savedAt: 1792682915738,
+      touched: 1792926647415,
+      infoTried: true,
+      draft: false,
+    },
+    {
+      id: "179275574536219e9",
+      title: "킬미, 힐미",
+      en: "Kill Me, Heal Me",
+      tvId: 3199,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/532/1330923.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/532/1330923.jpg",
+      year: "2015",
+      network: "MBC",
+      eps: 20,
+      info: {
+        genres: ["Comedy", "Romance", "Medical"],
+        summary:
+          "A romantic comedy between a third-generation billionaire with Dissociative Identity Disorder and a first-year Psychiatrist resident who treats him secretly.After a traumatic experience in his childhood, Cha Do Hyun suffers memory lapses and his personality then fractured into seven different identities. He tries to regain control over his life with the help of Oh Ri Jin, a first-year psychiatric resident who treats him secretly. But Ri Jin's twin brother, Oh Ri Ohn, is a famous mystery novelist who investigates about Do Hyun and his family.",
+        premiered: "2015-01-07",
+        ended: "2015-03-12",
+      },
+      kind: "로맨스",
+      status: "watching",
+      upTo: 11,
+      scores: [
+        null,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.5,
+        0.4,
+        0.4,
+        0.4,
+        0.5,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792755745362,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792755745362,
+      touched: 1792755752616,
+      infoTried: true,
+    },
+    {
+      id: "1792926451927687f",
+      title: "하이에나",
+      en: "Hyena",
+      tvId: 45681,
+      poster:
+        "https://static.tvmaze.com/uploads/images/medium_portrait/240/600227.jpg",
+      posterBig:
+        "https://static.tvmaze.com/uploads/images/original_untouched/240/600227.jpg",
+      year: "2020",
+      network: "SBS",
+      eps: 16,
+      info: {
+        genres: ["Drama", "Romance", "Legal"],
+        summary:
+          "Yoon Hee Jae and Jung Geum Ja are lawyers who work for the top 1% in society. Jung Geum Ja is a lawyer, who is after money only. She wins her cases using any means necessary. Yoon Hee Jae is an elite lawyer, who is smart and confident at his job.",
+        premiered: "2020-02-21",
+        ended: "2020-04-11",
+      },
+      kind: null,
+      status: "watching",
+      upTo: 0,
+      scores: [
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+      ],
+      review: "",
+      rating: null,
+      keys: [],
+      liked: false,
+      watchLabel: "1회차",
+      watchStart: 1792926451927,
+      history: [],
+      notes: {},
+      times: {},
+      savedAt: 1792926451927,
+      touched: 1792926451927,
+      infoTried: true,
+    },
+  ],
+  sets: [
+    {
+      id: "s1792673541278",
+      name: "대사까지 외운 드라마",
+      color: "#8C6CE0",
+      ids: [
+        "179213955178193ea",
+        "1792139551781f9d4",
+        "1792139551781c144",
+        "1792139551781d3cd",
+        "179213955178142c3",
+        "17921395517813fdf",
+        "1792163557557d56b",
+        "1792670701226f818",
+        "1792670755482279d",
+        "179267090028367fb",
+        "17926709071354dcf",
+        "17926709143178851",
+      ],
+    },
+    {
+      id: "s1792674271823",
+      name: "최애 사극",
+      color: "#E8483B",
+      ids: [
+        "1792139551781f9d4",
+        "1792163557557d56b",
+        "17924576006707436",
+        "1792670496721d5c9",
+        "1792670755482279d",
+        "17926709143178851",
+      ],
+    },
+    {
+      id: "s1792674501441",
+      name: "개 설레는",
+      color: "#E05D8C",
+      ids: [
+        "1792139551781956f",
+        "179213955178193ea",
+        "179213955178142c3",
+        "179213955178166e2",
+        "17921395517813fdf",
+        "1792139551781b879",
+        "17926709071354dcf",
+        "17926709143178851",
+      ],
+    },
+    {
+      id: "s1792926401496",
+      name: "메디컬 드라마",
+      color: "#4C86E8",
+      ids: ["17921395517817345", "179267111309744e2", "1792670920617713e"],
+    },
+    {
+      id: "s1792926440233",
+      name: "법 드라마",
+      color: "#F07A2E",
+      ids: ["17921395517812c42", "1792671184664c476", "1792926451927687f"],
+    },
+  ],
+  sample: false,
+};
