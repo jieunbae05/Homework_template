@@ -3,24 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <!-- 모바일 필수: 이 태그가 없으면 폰에서 PC용 화면처럼 축소되어 터치가 스크롤/확대로 해석됨 -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no"
-    />
-    <title>Interactive Design Archive · 배지은</title>
-
-    <!-- 글꼴: 큰 제목 Archivo · 작은 표기 Space Mono · 한글 IBM Plex Sans KR -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no" />
+    <title>Interactive Design Archive · C535163</title>
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800&family=Playfair+Display:wght@400;700&family=Tinos:wght@400;700&family=Pinyon+Script&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Nanum+Gothic+Coding:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@700;800&family=IBM+Plex+Mono:wght@400;500;600&family=Nanum+Gothic+Coding:wght@400;700&display=swap"
     />
-
     <style>
       :root {
-        --ink: #e8e8e8;
-        --mute: #8b8b8b;
-        --tag: #161616;
+        --bg: #f4f4f3;
+        --ink: #141414;
+        --mute: #8a8a8a;
+        --line: #d6d6d4;
         --mono: "IBM Plex Mono", "Nanum Gothic Coding", ui-monospace, monospace;
+        --menu: 260px;
       }
       /* 허브 페이지는 절대 스크롤/선택되지 않게 고정 (아이폰에서 터치가 페이지 스크롤로 새는 것 방지) */
       html,
@@ -32,1024 +28,240 @@
         -webkit-user-select: none;
         user-select: none;
         -webkit-touch-callout: none;
-        background: radial-gradient(70% 60% at 50% 45%, #1b1b1d, #050505 70%) #050505;
+        background: var(--bg);
         color: var(--ink);
         font-family: var(--mono);
-        touch-action: none;
       }
-      /* 아래층: 실제 작품(iframe)이 들어가는 3D 레이어 · 위층: 바인더를 그리는 WebGL 캔버스 */
-      #css,
-      #gl {
+      [hidden] {
+        display: none !important;
+      }
+      /* 왼쪽 메뉴 */
+      #menu {
         position: fixed;
-        inset: 0;
+        top: 0;
+        left: 0;
+        width: var(--menu);
+        height: 100%;
+        padding: 28px 24px;
+        box-sizing: border-box;
+        border-right: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
-      #gl {
-        pointer-events: none; /* 클릭은 아래 작품까지 통과 */
-        z-index: 2;
+      .head small {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--mute);
+        letter-spacing: 0.04em;
       }
-      #css {
-        z-index: 1;
+      .head b {
+        display: block;
+        margin-top: 2px;
+        font: 800 34px/1 Inter, "Helvetica Neue", Arial, sans-serif;
+        letter-spacing: -0.01em;
       }
-      .work {
-        width: 1600px;
-        height: 1000px;
-        background: #000;
+      .head span {
+        display: block;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--mute);
       }
-      .work iframe {
+      #list {
+        display: flex;
+        flex-direction: column;
+      }
+      #list a {
+        display: grid;
+        grid-template-columns: 26px 1fr;
+        padding: 12px 0;
+        border-top: 1px solid var(--line);
+        color: var(--ink);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      #list a:last-child {
+        border-bottom: 1px solid var(--line);
+      }
+      #list .n {
+        font-size: 12px;
+        color: var(--mute);
+        padding-top: 2px;
+      }
+      #list .t {
+        font-size: 14px;
+        font-weight: 600;
+      }
+      #list .s {
+        grid-column: 2;
+        font-size: 11px;
+        color: var(--mute);
+        margin-top: 2px;
+      }
+      #list a.on .n,
+      #list a.on .t {
+        color: var(--ink);
+      }
+      #list a.on .n::before {
+        content: "▶";
+        font-size: 9px;
+      }
+      #list a.on .n span {
+        display: none;
+      }
+      #list a.soon {
+        cursor: default;
+      }
+      #list a.soon .t {
+        color: var(--mute);
+      }
+      #list a:not(.soon):hover .t {
+        text-decoration: underline;
+      }
+      #open {
+        margin-top: auto;
+        font-size: 12px;
+        color: var(--mute);
+        text-decoration: none;
+      }
+      #open:hover {
+        color: var(--ink);
+      }
+      /* iframe 영역: 메뉴를 뺀 나머지 화면 전체 */
+      #stage {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: var(--menu);
+        overflow: hidden;
+        background: #111;
+      }
+      #viewer {
+        display: block;
         width: 100%;
         height: 100%;
         border: 0;
-        display: block;
       }
-
-      /* ── 화면 위 조작 ── */
-      /* ── 전체 보기: 속지를 빼서 책상 위에 나란히 펼쳐 놓은 모습 ── */
-      #gl, #css { transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s, filter .6s; }
-      body.overview #gl, body.overview #css { transform: scale(.82) translateY(-4%); opacity: .18; filter: blur(2px); pointer-events: none; }
-      #desk { position: fixed; inset: 0; z-index: 8; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; padding: 24px 40px 90px; pointer-events: none; opacity: 0; transition: opacity .35s; }
-      body.overview #desk { pointer-events: auto; opacity: 1; }
-      #sheets { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: clamp(16px, 2.4vw, 34px); width: min(1180px, 100%); }
-      .sheet { position: relative; aspect-ratio: 16 / 10; border: 0; padding: 0; background: #fbfbfb; cursor: pointer; box-shadow: 0 18px 40px rgba(0,0,0,.55); border-radius: 3px; overflow: visible;
-        transform: translateY(60px) rotate(var(--r)) scale(.9); opacity: 0; transition: transform .55s cubic-bezier(.2,.9,.25,1.15), opacity .4s, box-shadow .25s; transition-delay: var(--d); }
-      body.overview .sheet { transform: rotate(var(--r)); opacity: 1; }
-      body.overview .sheet:hover { transform: rotate(0) translateY(-8px) scale(1.03); box-shadow: 0 26px 50px rgba(0,0,0,.65); transition-delay: 0s; }
-      .sheet { background: #111; }
-      .sheet .scr { position: absolute; inset: 0; overflow: hidden; border-radius: 3px; background: #111; }
-      .sheet .scr iframe { position: absolute; left: 0; top: 0; width: 1600px; height: 1000px; border: 0; transform-origin: 0 0; pointer-events: none; }
-      .sheet .soonTxt { position: absolute; inset: 0; display: grid; place-items: center; color: #777; font: 600 14px "IBM Plex Mono", monospace; letter-spacing: .1em; }
-      .sheet .cap { position: absolute; left: 0; right: 0; top: calc(100% + 10px); text-align: left; color: #ddd; font: 600 14px "IBM Plex Mono", "Nanum Gothic Coding", monospace; letter-spacing: .02em; }
-      .sheet .cap small { display: block; color: #8b8b8b; font-weight: 400; font-size: 12px; margin-top: 2px; }
-      #sheets { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; column-gap: 40px !important; row-gap: 70px !important; width: min(1000px, 100%, calc((100vh - 270px) * 1.5)) !important; }
-      @media (max-width: 640px) { #sheets { grid-template-columns: 1fr !important; } }
-      .sheet .n { position: absolute; left: 0; transform: translateX(-100%); top: 14%; background: #dedede; color: #2a2a2a; font: 500 15px "IBM Plex Mono", monospace; padding: 4px 12px 4px 10px; border-radius: 4px 0 0 4px; box-shadow: -2px 2px 6px rgba(0,0,0,.3); }
-      .sheet.soon { filter: grayscale(1) brightness(.8); }
-      #deskHint { margin: 0; color: var(--mute); font-size: 12px; }
-      body.overview #hint { opacity: 0 !important; }
-      #bar {
-        position: fixed;
-        left: 50%;
-        bottom: calc(16px + env(safe-area-inset-bottom, 0px));
-        transform: translateX(-50%);
-        z-index: 10;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        font-size: 12px;
-        color: var(--mute);
-        white-space: nowrap;
-      }
-      #bar button,
-      #bar a {
-        background: transparent;
-        color: var(--ink);
-        border: 1px solid #3a3a3a;
-        font-family: var(--mono);
-        font-size: 12px;
-        padding: 6px 12px;
-        cursor: pointer;
-        text-decoration: none;
-      }
-      #bar button:hover,
-      #bar a:hover {
-        border-color: var(--ink);
-      }
-      #bar .play {
-        background: var(--ink);
-        color: #111;
-      }
-      #bar a[hidden] {
-        display: none;
-      }
-      #tabs {
-        position: fixed;
-        right: calc(14px + env(safe-area-inset-right, 0px));
-        top: 50%;
-        transform: translateY(-50%);
-        z-index: 10;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-      }
-      #tabs button {
-        font-family: var(--mono);
-        font-size: 11px;
-        color: var(--ink);
-        background: rgba(255, 255, 255, 0.06);
-        border: 1px solid #333;
-        padding: 8px 10px;
-        cursor: pointer;
-        text-align: left;
-      }
-      #tabs button.on {
-        background: var(--tag);
-        border-color: var(--tag);
-        color: #fff;
-      }
-      #hint {
-        position: fixed;
-        left: 50%;
-        top: calc(18px + env(safe-area-inset-top, 0px));
-        transform: translateX(-50%);
-        z-index: 10;
-        font-size: 12px;
-        color: var(--mute);
-        white-space: nowrap;
-        transition: opacity 0.6s;
-      }
-      button:focus-visible,
-      a:focus-visible {
-        outline: 2px solid var(--tag);
-        outline-offset: 2px;
-      }
-      #loading {
-        position: fixed;
+      #soon {
+        position: absolute;
         inset: 0;
         display: grid;
         place-items: center;
-        z-index: 20;
-        font-size: 12px;
-        color: var(--mute);
-        background: #050505;
-        transition: opacity 0.6s;
+        color: #777;
+        font-size: 14px;
+        letter-spacing: 0.12em;
+      }
+      /* 폰 · 좁은 화면: 메뉴를 위쪽 한 줄로 */
+      @media (max-width: 760px) {
+        :root {
+          --menu: 0px;
+        }
+        #menu {
+          width: 100%;
+          height: auto;
+          padding: 10px 12px;
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+          flex-direction: row;
+          align-items: center;
+          gap: 14px;
+          background: var(--bg);
+          z-index: 2;
+        }
+        .head b {
+          font-size: 18px;
+        }
+        .head small,
+        .head span,
+        #open,
+        #list .s {
+          display: none;
+        }
+        #list {
+          flex-direction: row;
+          gap: 6px;
+          overflow-x: auto;
+        }
+        #list a,
+        #list a:last-child {
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 5px 10px;
+          display: block;
+          white-space: nowrap;
+        }
+        #list .n {
+          display: none;
+        }
+        #list a.on {
+          background: var(--ink);
+          border-color: var(--ink);
+        }
+        #list a.on .t {
+          color: #fff;
+        }
+        #stage {
+          top: 56px;
+        }
       }
     </style>
-
-    <!-- three.js (3D) -->
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-      }
-    </script>
   </head>
   <body>
-    <div id="css"></div>
-    <canvas id="gl"></canvas>
-
-    <div id="hint">표지를 눌러서 펼치세요</div>
-    <div id="bar">
-      <button id="prevBtn" aria-label="이전 장">←</button>
-      <span id="count">00 / 00</span>
-      <button id="nextBtn" aria-label="다음 장">→</button>
-      <button id="allBtn">▦ 전체 보기</button>
-      <a id="openBtn" target="_blank" hidden>새 창 ↗</a>
+    <div id="menu">
+      <div class="head">
+        <b>ARCHIVE</b>
+      </div>
+      <nav id="list"></nav>
+      <a id="open" target="_blank">새 창에서 열기 ↗</a>
     </div>
-    <div id="desk" aria-hidden="true"><div id="sheets"></div></div>
-    <div id="loading">바인더를 펼치는 중…</div>
 
-    <script type="module">
-      import * as THREE from "three";
-      import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
-      import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
-      import { CSS3DRenderer, CSS3DObject } from "three/addons/renderers/CSS3DRenderer.js";
+    <div id="stage">
+      <iframe id="viewer" title="작품"></iframe>
+      <div id="soon" hidden>COMING SOON</div>
+    </div>
 
-      /* ─────────────────────────────────────────
-         과제 목록 — 과제가 늘면 여기에 한 칸 추가
-         folder : 깃허브 폴더 이름 (그 안의 index.html이 오른쪽 종이에서 실행됨 · 비우면 '준비 중')
-         notes  : 과정 · 바뀐 점 (줄마다 하나)
-         ───────────────────────────────────────── */
+    <script>
+      // 작품 목록: folder = 작품 폴더 이름 · title = 메뉴에 보일 이름 · type = 작은 글씨
+      // 기말과제가 생기면 마지막 folder 칸에 폴더 이름만 넣으면 됨
       const WORKS = [
-        // title = 내가 붙인 작품 이름 · type = 맨 윗줄 작은 글씨 (과제 구분 · 과제명)
-        // desc = ABOUT (한 항목 = 한 번호) · how = HOW TO PLAY ("터치 동작 → 결과" 한 줄씩)
-        {
-          folder: "DynamicBalance",
-          title: "Blossom in Motion",
-          type: "소과제 · Dynamic Balance",
-          en: "EXERCISE",
-          date: "09 / 15",
-          desc: [
-            "좌우로 흔들리는 대포가 쏘아 올린 벚꽃빛 농구공들이 톱니와 경사판에 튕기며 화면 곳곳으로 흩날립니다.",
-            "시소에 떨어진 공은 크기마다 무게가 달라 시소를 이리저리 기울게 합니다.",
-            "예측할 수 없는 물리의 움직임을 봄바람에 흩날리는 벚꽃잎처럼 표현했습니다.",
-          ],
-          how: ["터치 없이 지켜보기", "새 창 ↗ → 처음부터 다시"],
-        },
-        {
-          folder: "Delete, Delete, Delete",
-          title: "Moving On",
-          type: "소과제 · Delete, Delete, Delete",
-          en: "EXERCISE",
-          date: "10 / 06",
-          desc: [
-            "헤어진 지 일주일, 새벽 책상 위에서 \n전 연인과의 추억을 정리한다.",
-            "폴라로이드는 누르면 바로 구겨지고, \n편지는 문지르면 찢어져 흩날리고, 인생네컷은 라이터를 세 번 켜야 불이 붙는다.",
-          ],
-          how: [
-            "위 1 · 2 · 3 탭 → 단계 고르기",
-            "폴라로이드 탭 → 구겨짐",
-            "편지 누른 채 문지르기 → 찢김",
-            "손 떼기 → 조각이 흩날림",
-            "라이터 세 번 탭 → 불이 켜짐",
-            "라이터를 사진에 대기 → 탐",
-          ],
-        },
-        {
-          folder: "Drama_Ticket",
-          title: "Drama Diary",
-          type: "중간과제 · You memo? I memo!",
-          en: "MIDTERM",
-          date: "10 / 27",
-          desc: [
-            "드라마를 다시 볼 때마다 왜 좋았는지, \n어떤 화가 좋았는지 자꾸 잊어버렸습니다.",
-            "그래서 드라마 한 편을 티켓 한 장으로 만들어, 회차마다 느낀 걸 남기는 메모장을 만들었습니다.",
-            "다시 정주행하면 지난 기록과 지금을 비교하며 볼 수 있습니다.",
-          ],
-          how: [
-            "+ 새 티켓 탭 → 제목 쓰고 자동 찾기",
-            "티켓 탭 → 크게 열기",
-            "한 번 더 탭 · 옆으로 밀기 → 뒤집기",
-            "회차 띠 위아래로 긋기 → 화마다 평점",
-            "띠 길게 누르기 → 그 화 메모",
-            "N회차 보기 탭 → 새 회차로 다시 보기",
-          ],
-        },
-        {
-          folder: "",
-          title: "Final Project",
-          type: "기말과제",
-          en: "FINAL",
-          date: "— / —",
-          desc: [],
-          how: [],
-        },
+        { folder: "DynamicBalance", title: "Blossom in Motion", type: "소과제 · Dynamic Balance" },
+        { folder: "Delete, Delete, Delete", title: "Moving On", type: "소과제 · Delete, Delete, Delete" },
+        { folder: "Drama_Ticket", title: "Drama Diary", type: "중간과제 · You memo? I memo!" },
+        { folder: "", title: "Final Project", type: "기말과제" },
       ];
-      const NAME = "Jieun Bae"; // 표지 영문 이름
-      const SID = "C535163"; // 학번
-      const COURSE = "Interactive Design (2)";
-      const TERM = "2026 2학기";
 
-      const S = WORKS.length; // 펼친 면 개수 (표지를 열면 바로 01)
-      const ACCENT = "#161616"; // 포인트 색 (무채색: 거의 검정)
-      const LEAVES = S - 1; // 넘기는 종이 장수
-      const pad = (n) => String(n).padStart(2, "0");
-
-      /* ── 종이 크기 (3D 단위) ── */
-      // 가로로 긴 책 (작품 대부분이 가로 화면이라 종이도 가로형 16:10)
-      const PW = 1.6; // 종이 폭 (고리 → 바깥)
-      const PH = 1.0; // 종이 높이
-      const P0 = 0.06; // 고리에서 종이가 시작하는 거리
-      const TW = 1600; // 종이 그림 크기 (px)
-      const TH = 1000;
-      // 오른쪽 종이에서 작품이 뜨는 칸 (종이 그림 기준 px, 약 16:9)
-      const FR = { x: 0, y: 0, w: 1600, h: 1000 }; // 오른쪽 면 전체가 작품 화면
-      const CVW = PW + 0.15; // 표지 폭
-      const CVX = P0 + PW / 2 + 0.04; // 표지 중심 x
-
-      /* ═════════ 1. 종이 그림 (캔버스에 글자 · 표 그리기) ═════════ */
-      const F = {
-        // 안쪽 글씨: 타자기 느낌의 고정폭 (영문 IBM Plex Mono · 한글 나눔고딕코딩)
-        type: (px, w = 400, it) => `${it ? "italic " : ""}${w} ${px}px "IBM Plex Mono", "Nanum Gothic Coding", ui-monospace, monospace`,
-        // 표지: 굵은 산세리프 + 필기체
-        sans: (px, w = 800) => `${w} ${px}px Inter, "Helvetica Neue", Helvetica, Arial, sans-serif`,
-        script: (px) => `400 ${px}px "Pinyon Script", "Snell Roundhand", cursive`,
+      const list = document.getElementById("list");
+      const viewer = document.getElementById("viewer");
+      list.innerHTML = WORKS.map(
+        (w, i) =>
+          `<a data-i="${i}" class="${w.folder ? "" : "soon"}"><span class="n"><span>${String(i + 1).padStart(2, "0")}</span></span><span class="t">${w.title}</span><span class="s">${w.type}</span></a>`,
+      ).join("");
+      list.onclick = (e) => {
+        const a = e.target.closest("[data-i]");
+        if (a) show(+a.dataset.i);
       };
-      F.mono = (px, w = 400) => F.type(px, w); // 예전 이름 호환
-      F.kr = (px, w = 400) => F.type(px, w);
-      F.head = (px, it) => F.type(px, 400, it);
-      F.serifKr = (px, w = 400) => F.type(px, w);
-      const isKr = (t) => /[가-힣]/.test(t);
 
-      function wrap(ctx, text, maxW) {
-        const out = [];
-        for (const para of String(text).split("\n")) {
-          let line = "";
-          for (const ch of para.split(/(\s+)/)) {
-            const t = line + ch;
-            if (ctx.measureText(t).width > maxW && line.trim()) {
-              out.push(line.trim());
-              line = ch.trimStart();
-            } else line = t;
-          }
-          // 너무 긴 한 단어(한글 문장)는 글자 단위로 자르기
-          while (ctx.measureText(line).width > maxW) {
-            let k = line.length;
-            while (k > 1 && ctx.measureText(line.slice(0, k)).width > maxW) k--;
-            out.push(line.slice(0, k));
-            line = line.slice(k);
-          }
-          out.push(line.trim());
-        }
-        return out;
+      // 메뉴 클릭 시 iframe에 해당 폴더의 index.html을 불러옴
+      function loadHomework(folderName) {
+        viewer.src = encodeURI(folderName) + "/index.html";
       }
-      function noise(ctx, w, h, a) {
-        const id = ctx.getImageData(0, 0, w, h);
-        for (let i = 0; i < id.data.length; i += 4) {
-          const n = (Math.random() - 0.5) * a;
-          id.data[i] += n;
-          id.data[i + 1] += n;
-          id.data[i + 2] += n;
-        }
-        ctx.putImageData(id, 0, 0);
-      }
-      function mark(ctx, x, y, r, col) {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(x, y, r, 0, Math.PI * 2);
-        ctx.moveTo(x - r, y);
-        ctx.lineTo(x + r, y);
-        ctx.moveTo(x, y - r);
-        ctx.lineTo(x, y + r);
-        ctx.stroke();
-      }
-      function headerRow(ctx, left, right, ink) {
-        mark(ctx, 92, 92, 24, ink);
-        ctx.fillStyle = ink;
-        ctx.font = F.mono(28);
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        ctx.fillText(left, 136, 92);
-        ctx.textAlign = "right";
-        ctx.fillText(right.toUpperCase(), TW - 70, 92);
-        ctx.textAlign = "left";
-        ctx.fillRect(70, 128, TW - 140, 4);
-      }
-      function specTable(ctx, cols) {
-        const y = TH - 190;
-        const x0 = 70;
-        const w = TW - 140;
-        const ws = [0.22, 0.34, 0.22, 0.22];
-        ctx.fillStyle = "#141414";
-        ctx.fillRect(x0, y, w, 4);
-        ctx.fillRect(x0, y + 120, w, 2);
-        let x = x0;
-        cols.forEach(([k, v], i) => {
-          if (i) ctx.fillRect(x, y, 2, 120);
-          ctx.fillStyle = "#6e6e6e";
-          ctx.font = F.mono(22);
-          ctx.textBaseline = "alphabetic";
-          ctx.fillText(k.toUpperCase(), x + (i ? 18 : 0), y + 46);
-          ctx.fillStyle = "#141414";
-          ctx.font = F.mono(29);
-          let t = String(v);
-          const mw = w * ws[i] - 24;
-          while (ctx.measureText(t).width > mw && t.length > 2) t = t.slice(0, -2) + "…";
-          ctx.fillText(t, x + (i ? 18 : 0), y + 94);
-          x += w * ws[i];
-        });
-      }
-      function volTag(ctx, x, y, n) {
-        ctx.fillStyle = ACCENT;
-        ctx.fillRect(x, y, 150, 156);
-        ctx.fillStyle = "#fff";
-        ctx.font = F.mono(24);
-        ctx.textBaseline = "alphabetic";
-        ctx.fillText("VOL.", x + 18, y + 40);
-        ctx.font = F.head(96);
-        ctx.fillText(n, x + 14, y + 136);
-      }
-      // 제목: 고정폭 대문자 (넘치면 글자 크기를 줄여 2줄 안에)
-      function bigTitle(ctx, text, y, maxLines = 2, maxW = TW - 140) {
-        let size = 76;
-        let lines;
-        const t = isKr(text) ? text : text.toUpperCase();
-        for (;;) {
-          ctx.font = F.type(size, 700); // 제목은 굵게
-          lines = wrap(ctx, t, maxW);
-          const widest = Math.max(...lines.map((l) => ctx.measureText(l).width));
-          if ((lines.length <= maxLines && widest <= maxW) || size < 40) break;
-          size -= 4;
-        }
-        ctx.fillStyle = "#141414";
-        ctx.textBaseline = "alphabetic";
-        lines.forEach((l, i) => ctx.fillText(l, 70, y + size + i * size * 1.18));
-        return y + size + (lines.length - 1) * size * 1.18 + 40;
-      }
-      // 타자기 원고처럼 점선 한 줄
-      function dashLine(ctx, x0, y, x1, col = "#141414") {
-        ctx.fillStyle = col;
-        for (let x = x0; x < x1; x += 22) ctx.fillRect(x, y, 12, 2);
+      function show(i) {
+        const w = WORKS[i];
+        list.querySelectorAll("a").forEach((a) => a.classList.toggle("on", +a.dataset.i === i));
+        document.getElementById("soon").hidden = !!w.folder;
+        viewer.hidden = !w.folder;
+        const open = document.getElementById("open");
+        open.hidden = !w.folder;
+        if (!w.folder) return viewer.removeAttribute("src");
+        loadHomework(w.folder);
+        open.href = encodeURI(w.folder) + "/index.html";
+        try {
+          history.replaceState(null, "", "#" + (i + 1));
+        } catch {}
       }
 
-      function drawLeft(s) {
-        const c = document.createElement("canvas");
-        c.width = TW;
-        c.height = TH;
-        const ctx = c.getContext("2d");
-        ctx.fillStyle = "#f7f7f6";
-        ctx.fillRect(0, 0, TW, TH);
-        noise(ctx, TW, TH, 12);
-        const w = WORKS[s];
-        // 맨 윗줄: 과제 구분 (작게)
-        ctx.fillStyle = "#444";
-        ctx.font = F.type(32, 600);
-        ctx.textBaseline = "alphabetic";
-        ctx.fillText(`[${pad(s + 1)}]  ${w.type}`, 70, 110);
-        // 제목 + 점선 하나
-        let y = bigTitle(ctx, w.title, 136, 2, TW - 140);
-        dashLine(ctx, 70, y - 6, TW - 70);
-        // 줄 노트처럼: 모든 글자가 옅은 가로줄 위에 놓이게 한 줄 간격(LH)에 맞춰 배치
-        // 머리글(ABOUT · HOW TO PLAY)이 첫 줄, 글은 그 다음 줄부터. 문단 사이는 빈 줄 하나
-        // 글이 길면 두 단이 같은 크기를 유지한 채 함께 작아져서 종이 안에 다 들어감
-        const BASE0 = y + 76, // 첫 줄(머리글) 글자 밑선
-          MAXY = TH - 50;
-        const descs = (Array.isArray(w.desc) ? w.desc : [w.desc]).filter((t) => String(t).trim());
-        const cols = [
-          { items: descs, x: 70, width: TOCX - 70 - 64, mark: "none", gap: 1 }, // ABOUT: 문단 사이 빈 줄 1
-          { items: w.how, x: TOCX, width: TW - 70 - TOCX, mark: "dash", gap: 0 },
-        ];
-        const ind = (mark, size) => (mark === "none" ? 0 : size * 1.4);
-        const layout = (col, size) => {
-          ctx.font = F.type(size, 600);
-          let n = 1; // 0번 줄 = 머리글
-          const rows = col.items.map((t, k) => {
-            const lines = wrap(ctx, t, col.width - ind(col.mark, size));
-            const r = { lines, line: n };
-            n += lines.length + (k < col.items.length - 1 ? col.gap : 0);
-            return r;
-          });
-          return { rows, n };
-        };
-        const pitch = (size) => Math.round(size * 1.62);
-        let size = 32;
-        while (size > 20 && cols.some((c) => BASE0 + (layout(c, size).n - 1) * pitch(size) > MAXY)) size -= 1;
-        const LH = pitch(size);
-        // 옅은 가로줄: 글자 밑선 바로 아래
-        ctx.fillStyle = "rgba(0,0,0,.07)";
-        for (let b = BASE0; b < TH - 30; b += LH) ctx.fillRect(0, Math.round(b + size * 0.34), TW, 2);
-        for (const col of cols) {
-          if (!col.items.length) continue;
-          const L = layout(col, size);
-          L.rows.forEach((r) => {
-            r.lines.forEach((l, k) => {
-              const yy = BASE0 + (r.line + k) * LH;
-              if (k === 0 && col.mark === "dash") {
-                ctx.fillStyle = "#777";
-                ctx.fillText("–", col.x, yy);
-              }
-              // "동작 → 결과" 형식이면 결과 부분은 조금 연하게
-              const a = l.indexOf("→");
-              const lx = col.x + ind(col.mark, size);
-              ctx.fillStyle = "#111";
-              if (a > 0) {
-                ctx.fillText(l.slice(0, a), lx, yy);
-                const aw = ctx.measureText(l.slice(0, a)).width;
-                ctx.fillStyle = "#666";
-                ctx.fillText(l.slice(a), lx + aw, yy);
-              } else ctx.fillText(l, lx, yy);
-            });
-          });
-        }
-        // 머리글 (첫 줄)
-        ctx.fillStyle = "#444";
-        ctx.font = F.type(Math.min(28, size), 600);
-        ctx.fillText("ABOUT", 70, BASE0);
-        ctx.fillText("HOW TO PLAY", TOCX, BASE0); // 내용이 없어도 머리글은 보임
-        return c;
-      }
-
-      function drawRight(s) {
-        const c = document.createElement("canvas");
-        c.width = TW;
-        c.height = TH;
-        const ctx = c.getContext("2d");
-        const g = ctx.createRadialGradient(TW * 0.3, TH * 0.2, 50, TW * 0.5, TH * 0.5, TH * 0.9);
-        g.addColorStop(0, "#2b2b2d");
-        g.addColorStop(1, "#0d0d0e");
-        ctx.fillStyle = g;
-        ctx.fillRect(0, 0, TW, TH);
-        noise(ctx, TW, TH, 10);
-        // 작품 칸 (글씨 없이 칸만)
-        ctx.fillStyle = "#000";
-        ctx.fillRect(FR.x, FR.y, FR.w, FR.h);
-        ctx.strokeStyle = "#3a3a3c";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(FR.x, FR.y, FR.w, FR.h);
-        if (!WORKS[s].folder) {
-          ctx.fillStyle = "#6e6e6e";
-          ctx.font = F.mono(30, 700);
-          ctx.textAlign = "center";
-          ctx.fillText("COMING SOON", FR.x + FR.w / 2, FR.y + FR.h / 2 + 10);
-          ctx.textAlign = "left";
-        }
-        return c;
-      }
-
-      /* ── 옆 색인 탭 그림 ── */
-      function drawTab(n, on, flip) {
-        const c = document.createElement("canvas");
-        c.width = 300;
-        c.height = 180;
-        const x = c.getContext("2d");
-        const r = 34;
-        // 뒷면용은 둥근 모서리를 반대쪽에 (뒤집어 붙이면 바깥쪽이 둥글게)
-        if (flip) x.setTransform(-1, 0, 0, 1, 300, 0);
-        x.beginPath();
-        x.moveTo(0, 0);
-        x.lineTo(300 - r, 0);
-        x.quadraticCurveTo(300, 0, 300, r);
-        x.lineTo(300, 180 - r);
-        x.quadraticCurveTo(300, 180, 300 - r, 180);
-        x.lineTo(0, 180);
-        x.closePath();
-        x.fillStyle = on ? ACCENT : "#dedede";
-        x.fill();
-        x.setTransform(1, 0, 0, 1, 0, 0);
-        x.save();
-        x.clip();
-        noise(x, 300, 180, 10);
-        x.restore();
-        x.fillStyle = on ? "#fff" : "#2a2a2a";
-        x.font = F.type(84, 500);
-        x.textAlign = "center";
-        x.textBaseline = "middle";
-        x.fillText(pad(n), flip ? 115 : 185, 94);
-        return c;
-      }
-      let tocTop = 0;
-      const TOCX = 830; // 오른쪽 단(조작 방법) 시작 x — 두 단을 비슷한 너비로
-      const TOCH = 76; // 목차 한 줄 높이
-
-      /* ═════════ 2. 3D 장면 ═════════ */
-      const glCanvas = document.getElementById("gl");
-      const renderer = new THREE.WebGLRenderer({ canvas: glCanvas, antialias: true, alpha: true });
-      renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-      renderer.setClearColor(0x000000, 0);
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.0;
-      renderer.outputColorSpace = THREE.SRGBColorSpace;
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-
-      const cssRenderer = new CSS3DRenderer();
-      document.getElementById("css").appendChild(cssRenderer.domElement);
-
-      const scene = new THREE.Scene();
-      const cssScene = new THREE.Scene();
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      const room = new RoomEnvironment(renderer);
-      room.rotation.x = Math.PI; // 천장 조명을 옆으로 돌려서, 위에서 볼 때 비닐에 하얀 덩어리가 안 비치게
-      room.updateMatrixWorld(true);
-      scene.environment = pmrem.fromScene(room, 0.03).texture;
-
-      const camera = new THREE.PerspectiveCamera(26, 1, 0.1, 50);
-      const target = new THREE.Vector3(0, 0, 0.04);
-
-      // 빛: 위쪽 왼편에서 비추는 주광 + 은은한 보조광
-      const key = new THREE.DirectionalLight(0xffffff, 1.5);
-      key.position.set(-0.6, 5, 0.9); // 거의 머리 위: 넘길 때 그림자가 길게 늘어지지 않게
-      key.castShadow = true;
-      key.shadow.mapSize.set(2048, 2048);
-      key.shadow.camera.left = -2.6;
-      key.shadow.camera.right = 2.6;
-      key.shadow.camera.top = 2;
-      key.shadow.camera.bottom = -2;
-      key.shadow.radius = 14;
-      key.shadow.bias = -0.0004;
-      scene.add(key);
-      scene.add(new THREE.AmbientLight(0xffffff, 0.08));
-      const rim = new THREE.DirectionalLight(0xffffff, 0.8);
-      rim.position.set(3, 2, -3);
-      scene.add(rim);
-
-      // 바닥 그림자
-      const floor = new THREE.Mesh(new THREE.PlaneGeometry(8, 8), new THREE.ShadowMaterial({ opacity: 0.28 }));
-      floor.rotation.x = -Math.PI / 2;
-      floor.position.y = -0.045;
-      floor.receiveShadow = true;
-      scene.add(floor);
-
-      // 바인더 표지 (반들한 회색 비닐)
-      const coverMat = new THREE.MeshPhysicalMaterial({
-        color: 0x8f8f8f, // 표지: 중간 회색 (무채색) — 흰 내지와 구분되게
-        roughness: 0.7, // 무광에 가깝게 (위에서 비추는 빛이 하얗게 번지지 않도록)
-        envMapIntensity: 0.6,
-        clearcoat: 0.1,
-        clearcoatRoughness: 0.6,
-      });
-      // 앞표지(왼쪽)는 고리 쪽을 축으로 열리고 닫힘 → 처음에 닫힌 바인더가 펼쳐지는 동작
-      const HINGE = 0.07;
-      const frontCover = new THREE.Group();
-      frontCover.position.y = HINGE;
-      scene.add(frontCover);
-      for (const sx of [-1, 1]) {
-        const cv = new THREE.Mesh(new RoundedBoxGeometry(CVW, 0.03, PH + 0.17, 6, 0.028), coverMat);
-        cv.position.set(sx * CVX, -0.018, 0);
-        cv.castShadow = cv.receiveShadow = true;
-        if (sx < 0) {
-          cv.position.y -= HINGE;
-          frontCover.add(cv);
-        } else scene.add(cv);
-      }
-      // 앞표지 바깥 라벨 (닫혀 있을 때 보임)
-      // 앞표지 바깥면: 표지에 직접 인쇄된 제목 + 오른쪽 아래 꽂아 둔 이름 카드
-      const LW = 1750,
-        LH = 1170; // 표지 크기 비율 그대로 (CVW × 표지 높이)
-      // 작품을 대신하는 작은 정사각형 (각 폴더의 thumb.png / thumb.jpg, 없으면 자리 표시)
-      const thumbs = WORKS.map(() => null);
-      function loadThumbs(onAny) {
-        WORKS.forEach((w, i) => {
-          if (!w.folder) return;
-          const srcs = [w.thumb, encodeURI(w.folder) + "/thumb.png", encodeURI(w.folder) + "/thumb.jpg"].filter(Boolean);
-          const tryNext = () => {
-            if (!srcs.length) return;
-            const im = new Image();
-            im.onload = () => {
-              thumbs[i] = im;
-              onAny();
-            };
-            im.onerror = tryNext;
-            im.src = srcs.shift();
-          };
-          tryNext();
-        });
-      }
-      /* @@COVER_CORE_START@@ */
-/* ═════════ 표지 그리기 (index.html · cover_editor.html 공용) ═════════
-   C = 표지 설정 (cover.json). 글자 요소 · 목차 · 표지 색을 담음. */
-const COVER_DEFAULT = {
-  bg: 143, // 표지 회색 (0 검정 ~ 255 흰색)
-  ink: 20, // 글씨 회색
-  items: [
-    { text: "INTERACTIVE DESIGN (2)", x: 875, y: 440, size: 40, font: "Inter", weight: 700, align: "center", rotate: 0, opacity: 1, tracking: 0 },
-    { text: "ARCHIVE", x: 875, y: 640, size: 220, font: "Inter", weight: 800, align: "center", rotate: 0, opacity: 1, tracking: 0 },
-    { text: "{SID}  {NAME}", x: 875, y: 730, size: 32, font: "Inter", weight: 700, align: "center", rotate: 0, opacity: 1, tracking: 0 },
-    // 오른쪽 아래 목차: {W1} = 1번 작품 줄 ([01]  DYNAMIC BALANCE) …
-    { text: "{W1}", x: 1290, y: 920, size: 20, font: "IBM Plex Mono", weight: 500, align: "left", rotate: 0, opacity: 0.85, tracking: 0 },
-    { text: "{W2}", x: 1290, y: 954, size: 20, font: "IBM Plex Mono", weight: 500, align: "left", rotate: 0, opacity: 0.85, tracking: 0 },
-    { text: "{W3}", x: 1290, y: 988, size: 20, font: "IBM Plex Mono", weight: 500, align: "left", rotate: 0, opacity: 0.85, tracking: 0 },
-    { text: "{W4}", x: 1290, y: 1022, size: 20, font: "IBM Plex Mono", weight: 500, align: "left", rotate: 0, opacity: 0.85, tracking: 0 },
-  ],
-  toc: { show: false, style: "list", alignTabs: true, x: 1150, y: 235, gap: 150, sq: 112, size: 24 },
-};
-const COVER_FONTS = {
-  Inter: { css: "Inter", fallback: '"Helvetica Neue", Helvetica, Arial, sans-serif', weights: [400, 700, 800] },
-  "Pinyon Script": { css: '"Pinyon Script"', fallback: "cursive", weights: [400] },
-  "Playfair Display": { css: '"Playfair Display"', fallback: '"Times New Roman", serif', weights: [400, 700] },
-  "Times New Roman": { css: '"Times New Roman", Tinos', fallback: "Times, serif", weights: [400, 700] },
-  "IBM Plex Mono": { css: '"IBM Plex Mono", "Nanum Gothic Coding"', fallback: "monospace", weights: [400, 500, 600] },
-};
-const COVER_W = 1750,
-  COVER_H = 1170;
-const coverTabRow = (i) => 235 + i * 150; // 옆 색인 탭 높이 (표지 그림 px)
-
-function coverFont(it, size) {
-  const f = COVER_FONTS[it.font] || COVER_FONTS.Inter;
-  return `${it.italic ? "italic " : ""}${it.weight || 400} ${size ?? it.size}px ${f.css}, ${f.fallback}`;
-}
-function coverText(t, ctx) {
-  return String(t)
-    .replaceAll("{SID}", ctx.sid)
-    .replaceAll("{NAME}", ctx.name)
-    .replaceAll("{N}", String(ctx.works.length).padStart(2, "0"))
-    .replace(/\{W(\d+)\}/g, (_, n) => (ctx.works[n - 1] ? `[${String(n).padStart(2, "0")}]  ${ctx.works[n - 1].title.toUpperCase()}` : ""))
-    .replaceAll("{WORKS}", ctx.works.map((w, i) => `[${String(i + 1).padStart(2, "0")}] ${w.title.toUpperCase()}`).join("    "));
-}
-function coverTocRowY(C, i) {
-  return C.toc.alignTabs ? coverTabRow(i) : C.toc.y + i * C.toc.gap;
-}
-const gray = (v, a = 1) => `rgba(${v},${v},${v},${a})`;
-
-// 글자 하나 그리기 (자간 tracking 지원) → 크기(w,h) 돌려줌
-function coverDrawItem(x, it, ctx) {
-  const t = coverText(it.text, ctx);
-  x.save();
-  x.translate(it.x, it.y);
-  x.rotate(((it.rotate || 0) * Math.PI) / 180);
-  x.font = coverFont(it);
-  x.textBaseline = "alphabetic";
-  const tr = it.tracking || 0;
-  const chars = [...t];
-  const w = chars.reduce((s, ch) => s + x.measureText(ch).width, 0) + tr * Math.max(0, chars.length - 1);
-  let sx = it.align === "center" ? -w / 2 : it.align === "right" ? -w : 0;
-  x.globalAlpha = it.opacity ?? 1;
-  x.fillStyle = gray(ctx.C.ink);
-  if (!tr) x.fillText(t, sx, 0);
-  else
-    for (const ch of chars) {
-      x.fillText(ch, sx, 0);
-      sx += x.measureText(ch).width + tr;
-    }
-  x.restore();
-  return { w, h: it.size };
-}
-
-/* 목차 모양 (toc.style)
-   list   : 탭 높이에 맞춘 줄 목록 (정사각형 + 제목) — 줄 사이 가는 선
-   strip  : 표지 아래쪽 가로 한 줄 (밀착 인화지처럼 정사각형 4개 + 아래 작은 글씨)
-   column : 오른쪽 가장자리 세로 띠 (정사각형만 촘촘히 + 옆 [01] 번호) */
-function coverTocRects(C, works) {
-  const t = C.toc,
-    n = works.length,
-    sq = t.sq;
-  if (t.style === "strip") {
-    const gap = t.gap;
-    return works.map((_, i) => ({ x: t.x + i * (sq + gap), y: t.y, w: sq, h: sq + t.size * 2.6 }));
-  }
-  if (t.style === "column") {
-    const gap = t.gap;
-    return works.map((_, i) => ({ x: t.x, y: t.y + i * (sq + gap), w: sq, h: sq }));
-  }
-  return works.map((_, i) => {
-    const cy = coverTocRowY(C, i);
-    return { x: t.x, y: cy - sq / 2, w: COVER_W - 40 - t.x, h: sq };
-  });
-}
-function coverThumb(x, C, w, i, im, sx, sy, sq) {
-  if (im) {
-    const m = Math.min(im.width, im.height);
-    x.drawImage(im, (im.width - m) / 2, (im.height - m) / 2, m, m, sx, sy, sq, sq);
-    return;
-  }
-  // 사진이 없을 때: 표지보다 조금 어두운 면 + 가운데 작은 번호 (와이어프레임 X 대신)
-  x.fillStyle = w.folder ? gray(Math.max(0, C.bg - 38)) : gray(Math.max(0, C.bg - 14));
-  x.fillRect(sx, sy, sq, sq);
-}
-function drawCover(x, C, ctx) {
-  // ctx = { sid, name, works, thumbs, typeFont(px,w) }
-  ctx.C = C;
-  for (const it of C.items) coverDrawItem(x, it, ctx);
-  if (!C.toc.show) return;
-  const t = C.toc,
-    sq = t.sq,
-    size = t.size,
-    rects = coverTocRects(C, ctx.works);
-  const num = (i) => `[${String(i + 1).padStart(2, "0")}]`;
-  x.textBaseline = "alphabetic";
-  x.textAlign = "left";
-  ctx.works.forEach((w, i) => {
-    const r = rects[i],
-      im = ctx.thumbs && ctx.thumbs[i],
-      on = !!w.folder;
-    const fit = (str, maxW) => {
-      let s = str;
-      while (x.measureText(s).width > maxW && s.length > 3) s = s.slice(0, -2) + "…";
-      return s;
-    };
-    if (t.style === "strip") {
-      coverThumb(x, C, w, i, im, r.x, r.y, sq);
-      x.fillStyle = gray(C.ink, on ? 1 : 0.45);
-      x.font = ctx.typeFont(size * 0.8, 400);
-      x.fillText(num(i), r.x, r.y + sq + size * 1.2);
-      x.font = ctx.typeFont(size * 0.8, 500);
-      x.fillText(fit(w.title.toUpperCase(), sq), r.x, r.y + sq + size * 2.3);
-    } else if (t.style === "column") {
-      coverThumb(x, C, w, i, im, r.x, r.y, sq);
-      x.save();
-      x.translate(r.x - size * 0.5, r.y + sq);
-      x.rotate(-Math.PI / 2);
-      x.fillStyle = gray(C.ink, on ? 0.8 : 0.4);
-      x.font = ctx.typeFont(size * 0.75, 400);
-      x.fillText(num(i), 0, 0);
-      x.restore();
-    } else {
-      // list: 줄마다 정사각형 · 제목 · 구분, 줄 사이 가는 선
-      coverThumb(x, C, w, i, im, r.x, r.y, sq);
-      const tx = r.x + sq + 28;
-      x.fillStyle = gray(C.ink, on ? 1 : 0.45);
-      x.font = ctx.typeFont(size, 500);
-      x.fillText(fit(w.title.toUpperCase(), COVER_W - 40 - tx), tx, r.y + size * 1.1);
-      x.fillStyle = gray(C.ink, on ? 0.6 : 0.35);
-      x.font = ctx.typeFont(size * 0.8, 400);
-      x.fillText(`${num(i)}  ${w.en || ""}`, tx, r.y + sq - size * 0.2);
-      x.fillStyle = gray(C.ink, 0.25);
-      if (i === 0) x.fillRect(r.x, r.y - ((t.alignTabs ? 150 : t.gap) - sq) / 2, COVER_W - 40 - r.x, 1.5);
-      x.fillRect(r.x, r.y + sq + ((t.alignTabs ? 150 : t.gap) - sq) / 2, COVER_W - 40 - r.x, 1.5);
-    }
-  });
-}
-// 표지 그림 좌표(px,py)가 몇 번째 작품 목차 위인지 (없으면 -1)
-function coverTocHit(C, works, px, py) {
-  if (!C.toc.show) return -1;
-  return coverTocRects(C, works).findIndex((r) => px >= r.x - 12 && px <= r.x + r.w + 12 && py >= r.y - 12 && py <= r.y + r.h + 12);
-}
-// 저장된 설정을 기본값 위에 덮어씀 (빠진 칸은 기본값 유지)
-function mergeCover(saved) {
-  const C = JSON.parse(JSON.stringify(COVER_DEFAULT));
-  if (!saved || typeof saved !== "object") return C;
-  if (typeof saved.bg === "number") C.bg = saved.bg;
-  if (typeof saved.ink === "number") C.ink = saved.ink;
-  if (Array.isArray(saved.items)) C.items = saved.items;
-  if (saved.toc) Object.assign(C.toc, saved.toc);
-  return C;
-}
-      /* @@COVER_CORE_END@@ */
-      let COVER = mergeCover(null); // cover.json 이 있으면 그걸로 바뀜 (cover_editor.html 에서 만듦)
-      const tocRowY = (i) => coverTocRowY(COVER, i);
-      function coverLabel() {
-        const c = document.createElement("canvas");
-        c.width = LW;
-        c.height = LH;
-        drawCover(c.getContext("2d"), COVER, { sid: SID, name: NAME, works: WORKS, thumbs, typeFont: (px, w) => F.type(px, w) });
-        return c;
-      }
-      let labelMesh = null;
-      function addCoverLabel() {
-        const t = tex(coverLabel(), false);
-        // 정사각형 이미지가 늦게 도착하면 표지를 다시 그림
-        loadThumbs(() => {
-          t.image = coverLabel();
-          t.needsUpdate = true;
-        });
-        labelMesh = new THREE.Mesh(
-          new THREE.PlaneGeometry(CVW, PH + 0.17),
-          new THREE.MeshStandardMaterial({ map: t, roughness: 0.75, envMapIntensity: 0.3, transparent: true }),
-        );
-        labelMesh.rotation.x = Math.PI / 2; // 표지 아래면을 향함 → 닫히면 위를 봄
-        labelMesh.rotation.z = Math.PI;
-        labelMesh.position.set(-CVX, -0.0335 - HINGE, 0);
-        frontCover.add(labelMesh);
-      }
-
-      // 가운데 등판
-      const spine = new THREE.Mesh(
-        new THREE.BoxGeometry(0.1, 0.02, PH + 0.15),
-        new THREE.MeshPhysicalMaterial({ color: 0x7d7d7d, roughness: 0.5, clearcoat: 0.5 }),
-      );
-      spine.position.y = -0.022;
-      scene.add(spine);
-
-      // 크롬 고리 · 고리 판
-      const chrome = new THREE.MeshPhysicalMaterial({ color: 0xe8e8e8, metalness: 1, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.05 });
-      const plate = new THREE.Mesh(new RoundedBoxGeometry(0.11, 0.018, PH * 0.9, 4, 0.008), chrome);
-      plate.position.set(0, 0.006, 0);
-      plate.castShadow = true;
-      scene.add(plate);
-      for (const z of [-0.38, -0.13, 0.13, 0.38]) {
-        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.085, 0.011, 20, 64, Math.PI), chrome);
-        ring.position.set(0, 0.012, z);
-        ring.castShadow = true;
-        scene.add(ring);
-      }
-
-      /* ── 종이 · 비닐 속지 재료 ── */
-      function tex(canvas, mirror) {
-        const t = new THREE.CanvasTexture(canvas);
-        t.colorSpace = THREE.SRGBColorSpace;
-        t.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        if (mirror) {
-          t.wrapS = THREE.RepeatWrapping;
-          t.repeat.x = -1;
-          t.offset.x = 1;
-        }
-        return t;
-      }
-      const paperMat = (map, side) =>
-        new THREE.MeshStandardMaterial({ map, roughness: 0.8, side, envMapIntensity: 0.28, emissive: 0xffffff, emissiveMap: map, emissiveIntensity: 0.5 }); // 세워져도 회색으로 죽지 않게
-      // 비닐: 색은 없고 반사(빛 맺힘)만 더해지는 투명 막
-      const sleeveMat = new THREE.MeshPhysicalMaterial({
-        color: 0x000000,
-        roughness: 0.04,
-        metalness: 0,
-        clearcoat: 1,
-        clearcoatRoughness: 0.02,
-        envMapIntensity: 0.5,
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-      // 빛만 더하고 투명도는 그대로 두는 섞기 (그래야 비닐 아래 작품이 비쳐 보임)
-      function glossBlend(m, useAlpha) {
-        m.blending = THREE.CustomBlending;
-        m.blendEquation = THREE.AddEquation;
-        m.blendSrc = useAlpha ? THREE.SrcAlphaFactor : THREE.OneFactor;
-        m.blendDst = THREE.OneFactor;
-        m.blendSrcAlpha = THREE.ZeroFactor;
-        m.blendDstAlpha = THREE.OneFactor;
-        return m;
-      }
-      glossBlend(sleeveMat, false);
-      // 비닐 위 반사 줄무늬 (빛을 더하는 방식)
-      const streakCanvas = (() => {
-        const c = document.createElement("canvas");
-        c.width = 512;
-        c.height = 512;
-        const x = c.getContext("2d");
-        const g = x.createLinearGradient(0, 0, 512, 512);
-        g.addColorStop(0, "rgba(255,255,255,0)");
-        g.addColorStop(0.38, "rgba(255,255,255,0)");
-        g.addColorStop(0.45, "rgba(255,255,255,.55)");
-        g.addColorStop(0.48, "rgba(255,255,255,.08)");
-        g.addColorStop(0.54, "rgba(255,255,255,.35)");
-        g.addColorStop(0.62, "rgba(255,255,255,0)");
-        g.addColorStop(1, "rgba(255,255,255,0)");
-        x.fillStyle = g;
-        x.fillRect(0, 0, 512, 512);
-        return c;
-      })();
-      const streakTex = new THREE.CanvasTexture(streakCanvas);
-      streakTex.wrapS = THREE.ClampToEdgeWrapping;
-      const streakMat = new THREE.MeshBasicMaterial({
-        map: streakTex,
-        transparent: true,
-        opacity: 0.13,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-      });
-      glossBlend(streakMat, true);
-      // 비닐 반들거림은 끔 (종이만 보이게)
-      sleeveMat.visible = false;
-      streakMat.visible = false;
-
-      /* ── 휘어지며 넘어가는 종이 ── */
-      const SEG = 40;
-      function pageGeom() {
-        const g = new THREE.PlaneGeometry(PW, PH, SEG, 1);
-        g.rotateX(-Math.PI / 2);
-        g.translate(P0 + PW / 2, 0, 0);
-        const pos = g.attributes.position;
-        g.userData.s = Float32Array.from({ length: pos.count }, (_, i) => pos.getX(i)); // 고리에서의 거리
-        g.userData.z = Float32Array.from({ length: pos.count }, (_, i) => pos.getZ(i));
-        return g;
-      }
-      // θ = 0 (오른쪽에 누움) → π (왼쪽에 누움) · bend = 휘는 정도 · lift = 들림
-      function bendGeom(g, theta, bend, y0, lift) {
-        const pos = g.attributes.position;
-        const s = g.userData.s,
-          z = g.userData.z;
-        const N = 60;
-        const maxS = P0 + PW;
-        // 고리에서 바깥쪽으로 조금씩 걸어가며 위치 계산 (바깥쪽이 늦게 따라오며 휘어짐)
-        const xs = [0],
-          ys = [0];
-        let x = 0,
-          y = 0;
-        for (let k = 1; k <= N; k++) {
-          const ss = (k / N) * maxS;
-          const a = theta - bend * ss * ss;
-          x += (maxS / N) * Math.cos(a);
-          y += (maxS / N) * Math.sin(a);
-          xs.push(x);
-          ys.push(y);
-        }
-        for (let i = 0; i < pos.count; i++) {
-          const f = (s[i] / maxS) * N;
-          const k = Math.min(N - 1, Math.floor(f));
-          const t = f - k;
-          pos.setXYZ(i, xs[k] + (xs[k + 1] - xs[k]) * t, y0 + lift + ys[k] + (ys[k + 1] - ys[k]) * t, z[i]);
-        }
-        pos.needsUpdate = true;
-        g.computeVertexNormals();
-        // 바깥 끝 위치 · 기울기 (색인 탭이 따라 붙도록)
-        g.userData.end = { x: xs[N], y: y0 + lift + ys[N], a: theta - bend * maxS * maxS };
-      }
-
-      /* ── 종이 바깥쪽에 붙은 색인 탭 ── */
-      const TABW = 0.17, // 종이 밖으로 나온 길이
-        TABH = 0.12,
-        TABGAP = 0.03;
-      const tabZ = (i) => -PH / 2 + 0.09 + TABH / 2 + i * (TABH + TABGAP);
-      const tabObjs = [];
-      function makeTab(i, parent = scene) {
-        const geo = new THREE.PlaneGeometry(TABW + 0.03, TABH);
-        geo.rotateX(-Math.PI / 2);
-        geo.translate((TABW + 0.03) / 2 - 0.03, 0, 0); // 종이 안쪽으로 살짝 겹쳐 붙임
-        const texOff = tex(drawTab(i + 1, false)),
-          texOn = tex(drawTab(i + 1, true));
-        const texOffB = tex(drawTab(i + 1, false, true), true),
-          texOnB = tex(drawTab(i + 1, true, true), true);
-        const mk = (map, side) => new THREE.MeshStandardMaterial({ map, side, transparent: true, alphaTest: 0.5, roughness: 0.7, envMapIntensity: 0.3 });
-        const front = new THREE.Mesh(geo, mk(texOff, THREE.FrontSide));
-        const back = new THREE.Mesh(geo, mk(texOffB, THREE.BackSide));
-        front.castShadow = back.castShadow = true;
-        front.userData.tab = back.userData.tab = i;
-        const grp = new THREE.Group();
-        grp.add(front, back);
-        grp.position.z = tabZ(i);
-        parent.add(grp);
-        const t = { i, grp, front, back, set(on) {
-          front.material.map = on ? texOn : texOff;
-          back.material.map = on ? texOnB : texOffB;
-        } };
-        tabObjs.push(t);
-        return t;
-      }
-      function placeTab(t, end) {
-        t.grp.position.x = end.x;
-        t.grp.position.y = end.y + 0.0004;
-        t.grp.rotation.z = end.a;
-      }
-
-      // 맨 아래 두 장 (표지 면 왼쪽 · 마지막 면 오른쪽)
-      function flatPage(canvas, left) {
-        const grp = new THREE.Group();
-        const g = new THREE.PlaneGeometry(PW, PH);
-        g.rotateX(-Math.PI / 2);
-        const m = new THREE.Mesh(g, paperMat(tex(canvas), THREE.FrontSide));
-        m.receiveShadow = true;
-        const sl = new THREE.Mesh(g, sleeveMat);
-        sl.position.y = 0.0015;
-        const st = new THREE.Mesh(g, streakMat);
-        st.position.y = 0.0018;
-        grp.add(m, sl, st);
-        grp.position.set((left ? -1 : 1) * (P0 + PW / 2), left ? 0.004 - HINGE : 0.004, 0);
-        (left ? frontCover : scene).add(grp);
-        return { grp, mesh: m, streak: st };
-      }
-
-      const leaves = [];
-      const pages = []; // 면마다 오른쪽 종이 정보 (작품 칸 위치 계산용)
-
-      /* ═════════ 3. 작품(iframe) 레이어 ═════════ */
-      const workEl = document.createElement("div");
-      workEl.className = "work";
-      const iframe = document.createElement("iframe");
-      iframe.allow = "fullscreen";
-      workEl.appendChild(iframe);
-      // 작품 캔버스가 고정 크기(예: 1000×700)라 칸보다 작으면 → 칸에 꽉 차게 키우고 가운데로, 여백은 작품 배경색으로
-      // (같은 사이트 안에서만 됨: GitHub Pages OK. p5는 CSS로 키워도 마우스 좌표를 알아서 맞춰 줌)
       function fitFrame(iframe) {
         let tries = 0;
         const fit = () => {
@@ -1063,14 +275,22 @@ function mergeCover(saved) {
           if (!cv) return ++tries < 30 && setTimeout(fit, 150);
           const W = doc.documentElement.clientWidth,
             H = doc.documentElement.clientHeight;
-          if (cv.width >= W * 0.92 || cv.height >= H * 0.92) return; // 이미 화면에 맞춘 작품은 그대로
-          const k = Math.min(W / cv.width, H / cv.height);
+          // 작품 캔버스의 원래 크기 (처음 한 번 기억)
+          if (!cv.dataset.lw) {
+            cv.dataset.lw = cv.offsetWidth;
+            cv.dataset.lh = cv.offsetHeight;
+          }
+          const lw = +cv.dataset.lw,
+            lh = +cv.dataset.lh;
+          if (Math.abs(lw - W) <= 2 && Math.abs(lh - H) <= 2) return; // 이미 창 크기에 맞춰 그리는 작품은 그대로
+          // 고정 크기 캔버스(예: 1000×700)는 창에 꽉 차게 키우거나 줄이고 가운데로
+          const k = Math.min(W / lw, H / lh);
           Object.assign(cv.style, {
             position: "absolute",
-            left: (W - cv.width * k) / 2 + "px",
-            top: (H - cv.height * k) / 2 + "px",
-            width: cv.width * k + "px",
-            height: cv.height * k + "px",
+            left: (W - lw * k) / 2 + "px",
+            top: (H - lh * k) / 2 + "px",
+            width: lw * k + "px",
+            height: lh * k + "px",
           });
           // 여백 색 = 작품 캔버스 왼쪽 아래 구석 색 (작품이 그려진 뒤에 한 번 더)
           const paint = () => {
@@ -1089,464 +309,12 @@ function mergeCover(saved) {
         };
         fit();
       }
-      iframe.addEventListener("load", () => fitFrame(iframe));
-      const workObj = new CSS3DObject(workEl);
-      workObj.rotation.x = -Math.PI / 2;
-      workObj.scale.setScalar((FR.w / TW) * PW / 1600);
-      cssScene.add(workObj);
-      // WebGL 쪽에 '구멍'을 뚫어 아래 iframe이 보이게 함
-      const holeMat = new THREE.MeshBasicMaterial({ color: 0x000000, opacity: 0, transparent: false, blending: THREE.NoBlending });
-      const hole = new THREE.Mesh(new THREE.PlaneGeometry((FR.w / TW) * PW, (FR.h / TH) * PH), holeMat);
-      hole.rotation.x = -Math.PI / 2;
-      hole.renderOrder = 1;
-      scene.add(hole);
-      // 작품 칸 중심 (오른쪽에 누운 종이 기준)
-      const frameCX = P0 + ((FR.x + FR.w / 2) / TW) * PW;
-      const frameCZ = -PH / 2 + ((FR.y + FR.h / 2) / TH) * PH;
+      addEventListener("resize", () => viewer.getAttribute("src") && fitFrame(viewer));
+      viewer.addEventListener("load", () => viewer.getAttribute("src") && fitFrame(viewer));
 
-      /* ═════════ 4. 넘기기 상태 ═════════ */
-      let cur = 0;
-      const STEP = 0.0022; // 종이 사이 높이
-      function restY(i, flipped) {
-        return flipped ? 0.006 + STEP * i : 0.006 + STEP * (LEAVES - i);
-      }
-      function placeLeaf(lf) {
-        const th = lf.theta;
-        const p = th / Math.PI;
-        const mid = Math.sin(Math.PI * p);
-        // 바깥쪽이 살짝 늦게 따라오는 부드러운 휨 + 넘어가는 동안 고리 쪽이 조금 들림
-        const bend = lf.dir * 0.13 * mid;
-        const y0 = restY(lf.i, false) * (1 - p) + restY(lf.i, true) * p + 0.02 * mid;
-        bendGeom(lf.geom, th, bend, y0, 0);
-        bendGeom(lf.sgeom, th, bend, y0 + 0.0016, 0);
-        if (lf.tab) placeTab(lf.tab, lf.geom.userData.end);
-      }
-
-      function build() {
-        const lefts = Array.from({ length: S }, (_, s) => drawLeft(s));
-        buildDesk();
-        const rights = Array.from({ length: S }, (_, s) => drawRight(s));
-        const bl = flatPage(lefts[0], true);
-        const br = flatPage(rights[S - 1], false);
-        streaks.push(bl.streak, br.streak);
-        // 마지막 장(맨 아래 오른쪽 종이)의 탭
-        // 색인 탭은 각 작품의 '설명 면'(왼쪽 종이)에 붙음 → 지금 보는 작품 탭은 늘 왼쪽 맨 위에
-        // 01 탭: 앞표지 안쪽에 붙은 첫 설명 면의 바깥(왼쪽) 끝
-        placeTab(makeTab(0, frontCover), { x: -(P0 + PW), y: 0.004 - HINGE + 0.0004, a: Math.PI });
-        for (let i = 0; i < LEAVES; i++) {
-          const geom = pageGeom();
-          const sgeom = pageGeom();
-          const front = new THREE.Mesh(geom, paperMat(tex(rights[i]), THREE.FrontSide));
-          const back = new THREE.Mesh(geom, paperMat(tex(lefts[i + 1], true), THREE.BackSide));
-          front.castShadow = back.castShadow = true;
-          front.receiveShadow = back.receiveShadow = true;
-          const sl = new THREE.Mesh(sgeom, sleeveMat);
-          const st = new THREE.Mesh(sgeom, streakMat);
-          streaks.push(st);
-          scene.add(front, back, sl, st);
-          const lf = { i, geom, sgeom, theta: 0, dir: 1, anim: null, moving: false, meshes: [front, back], tab: makeTab(i + 1) }; // 이 종이의 뒷면 = 다음 작품 설명 면
-          leaves.push(lf);
-          placeLeaf(lf);
-        }
-      }
-      const streaks = [];
-
-      const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
-      function animLeaf(lf, to, delay = 0, dur = 820) {
-        lf.dir = to > lf.theta ? 1 : -1;
-        lf.anim = { from: lf.theta, to, t0: performance.now() + delay, dur };
-      }
-      function anyMoving() {
-        return leaves.some((l) => l.anim) || drag || opening;
-      }
-
-      /* ── 표지 열기 · 닫기 ── */
-      let closed = true; // 처음엔 표지가 닫혀 있음
-      function coverTo(to, dur, then) {
-        opening = { t0: performance.now(), dur, from: frontCover.rotation.z, to, then };
-      }
-      function openBinder(then) {
-        if (!closed) return; // 들썩이는 중이어도 바로 열림
-        closed = false;
-        const hint = document.getElementById("hint");
-        setTimeout(() => (hint.style.opacity = 0), 7000);
-        hint.textContent = "종이를 잡고 옆으로 끌거나, 종이를 눌러서 넘기세요";
-        coverTo(0, 1600, then);
-        ui();
-      }
-      function closeBinder() {
-        if (closed || opening || cur !== 0) return;
-        closed = true;
-        hideWork();
-        coverTo(-Math.PI, 1400);
-        ui();
-      }
-
-      function go(t) {
-        if (closed) return openBinder(() => t > 0 && go(t));
-        if (opening) return;
-        if (t < 0 && cur === 0) return closeBinder();
-        t = Math.max(0, Math.min(S - 1, t));
-        if (t === cur) return;
-        const from = cur;
-        cur = t;
-        const order = t > from ? leaves.slice(from, t) : leaves.slice(t, from).reverse();
-        order.forEach((lf, k) => animLeaf(lf, lf.i < cur ? Math.PI : 0, k * 150));
-        ui();
-        hideWork();
-      }
-
-      /* ── 작품 보이기 / 숨기기 ── */
-      let shownFor = -1;
-      function hideWork() {
-        workObj.visible = false; // CSS3DRenderer가 display를 매 프레임 덮어쓰므로 visible로 숨김
-        hole.visible = false;
-      }
-      function showWork() {
-        const w = WORKS[cur];
-        if (overview || closed || !w || !w.folder) return hideWork();
-        // 지금 오른쪽 맨 위 종이의 높이
-        const y = cur < LEAVES ? restY(cur, false) : 0.004;
-        hole.position.set(frameCX, y + 0.0008, frameCZ);
-        workObj.position.set(frameCX, y + 0.0008, frameCZ);
-        hole.visible = true;
-        workObj.visible = true;
-        if (shownFor !== cur) {
-          shownFor = cur;
-          iframe.src = encodeURI(w.folder) + "/index.html";
-          iframe.title = w.title;
-        }
-      }
-
-      /* ═════════ 5. 화면 맞추기 · 카메라 ═════════ */
-      let mouse = { x: 0, y: 0 };
-      let opening = null;
-      let zoom = 1;
-      function resize() {
-        const w = innerWidth,
-          h = innerHeight;
-        renderer.setSize(w, h, false);
-        glCanvas.style.width = w + "px";
-        glCanvas.style.height = h + "px";
-        cssRenderer.setSize(w, h);
-        camera.aspect = w / h;
-        camera.updateProjectionMatrix();
-      }
-      function placeCamera() {
-        // 바인더 전체(가로 3.6 · 세로 1.2)가 화면에 들어오게 거리 조절
-        const vf = THREE.MathUtils.degToRad(camera.fov);
-        const hf = 2 * Math.atan(Math.tan(vf / 2) * camera.aspect);
-        // 펼치면 화면 가득, 닫혀 있을 땐 표지 하나가 화면 가득 (열리면서 뒤로 빠짐)
-        const open = frontCover.rotation.z / -Math.PI; // 1 = 닫힘
-        const distOpen = Math.max(1.86 / Math.tan(hf / 2), 0.64 / Math.tan(vf / 2));
-        const distClosed = Math.max(1.05 / Math.tan(hf / 2), 0.76 / Math.tan(vf / 2));
-        const dist = (distOpen + (Math.min(distOpen, distClosed) - distOpen) * open) * zoom;
-        // 바로 위에서 내려다보는 시점 (마우스에 아주 살짝만 반응)
-        camera.up.set(0, 0, -1);
-        camera.position.set(target.x + mouse.x * 0.04, dist, target.z + mouse.y * 0.04 + 0.001);
-        camera.lookAt(target);
-      }
-      addEventListener("resize", resize);
-
-      /* ═════════ 6. 끌어서 · 눌러서 넘기기 ═════════ */
-      const raycaster = new THREE.Raycaster();
-      let drag = null;
-      function screenX(v) {
-        const p = v.clone().project(camera);
-        return (p.x * 0.5 + 0.5) * innerWidth;
-      }
-      addEventListener("pointerdown", (e) => {
-        if (overview || e.target.closest("button, a, #desk")) return;
-        // 색인 탭을 누르면 그 작품으로
-        const ndc = new THREE.Vector2((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
-        raycaster.setFromCamera(ndc, camera);
-        const th = raycaster.intersectObjects(tabObjs.flatMap((t) => [t.front, t.back]))[0];
-        if (th && !opening) return (stopDemo(), go(th.object.userData.tab));
-        if (closed && labelMesh) {
-          // 표지 목차(정사각형 줄)를 누르면 표지를 열고 바로 그 작품으로
-          const hit = raycaster.intersectObject(labelMesh)[0];
-          if (hit) {
-            const px = hit.uv.x * LW,
-              py = (1 - hit.uv.y) * LH;
-            const row = coverTocHit(COVER, WORKS, px, py);
-            if (row >= 0) return (stopDemo(), openBinder(() => row > 0 && go(row)));
-          }
-        }
-        if (closed) return (stopDemo(), openBinder());
-        if (opening) return;
-        stopDemo();
-        const spineX = screenX(new THREE.Vector3(0, 0, 0));
-        const pagePx = Math.abs(screenX(new THREE.Vector3(P0 + PW, 0, 0)) - spineX);
-        const right = e.clientX > spineX;
-        const i = right ? cur : cur - 1;
-        drag = { x0: e.clientY * 0 + e.clientX, y0: e.clientY, right, pagePx, lf: leaves[i] || null, moved: false };
-        // 끄는 중에 손가락/마우스가 작품 화면이나 창 밖으로 나가도 놓친 걸로 처리되지 않게 붙잡아 둠
-        workEl.style.pointerEvents = "none";
-        try {
-          document.documentElement.setPointerCapture(e.pointerId);
-        } catch {}
-        if (drag.lf) {
-          drag.lf.anim = null;
-          drag.lf.moving = true;
-          drag.lf.dir = right ? 1 : -1;
-        }
-      });
-      addEventListener("pointermove", (e) => {
-        mouse.x = (e.clientX / innerWidth) * 2 - 1;
-        mouse.y = (e.clientY / innerHeight) * 2 - 1;
-        if (!drag) return;
-        const dx = e.clientX - drag.x0;
-        if (Math.abs(dx) > 6) drag.moved = true;
-        if (!drag.lf || !drag.moved) return;
-        hideWork();
-        const k = (-dx / drag.pagePx) * Math.PI;
-        drag.lf.theta = drag.right ? THREE.MathUtils.clamp(k, 0, Math.PI) : THREE.MathUtils.clamp(Math.PI + k, 0, Math.PI);
-        placeLeaf(drag.lf);
-      });
-      function endDrag(e) {
-        workEl.style.pointerEvents = "";
-        if (!drag) return;
-        const d = drag;
-        drag = null;
-        if (d.lf) d.lf.moving = false;
-        if (!d.moved) {
-          // 그냥 누름: 누른 쪽으로 한 장 (첫 장에서 왼쪽을 누르면 표지를 덮음)
-          if (d.lf) go(cur + (d.right ? 1 : -1));
-          else if (!d.right && cur === 0) closeBinder();
-          return;
-        }
-        if (!d.lf) return;
-        const done = d.right ? d.lf.theta > Math.PI * 0.3 : d.lf.theta < Math.PI * 0.7;
-        if (done) {
-          cur += d.right ? 1 : -1;
-          ui();
-        }
-        animLeaf(d.lf, d.lf.i < cur ? Math.PI : 0, 0, 600);
-      }
-      addEventListener("pointerup", endDrag);
-      // 놓는 순간을 못 받는 경우(창 밖, 탭 전환 등)에도 종이가 서 있지 않게 마무리
-      document.documentElement.addEventListener("lostpointercapture", endDrag);
-      addEventListener("blur", endDrag);
-      document.addEventListener("pointerleave", endDrag);
-      addEventListener("pointercancel", endDrag);
-
-      /* ═════════ 7. 버튼 · 탭 · 키보드 · 시범 ═════════ */
-      document.getElementById("prevBtn").onclick = () => (stopDemo(), go(cur - 1));
-      const next = () => (stopDemo(), closed ? openBinder() : go(cur + 1));
-      document.getElementById("nextBtn").onclick = next;
-      /* ── 전체 보기 ── */
-      const allBtn = document.getElementById("allBtn");
-      // 전체 보기: 작품 화면 자체를 작게 띄워서 한눈에 (열 때만 불러오고, 닫으면 멈춤)
-      const deskFrames = [];
-      function buildDesk() {
-        const box = document.getElementById("sheets");
-        WORKS.forEach((w, i) => {
-          const b = document.createElement("button");
-          b.className = "sheet" + (w.folder ? "" : " soon");
-          b.style.setProperty("--r", [-1.6, 1.2, -0.9, 1.8, -1.4, 1.0][i % 6] + "deg");
-          b.style.setProperty("--d", i * 70 + "ms");
-          b.setAttribute("aria-label", w.title + " 펼치기");
-          const scr = document.createElement("div");
-          scr.className = "scr";
-          if (w.folder) {
-            const f = document.createElement("iframe");
-            f.tabIndex = -1;
-            f.setAttribute("aria-hidden", "true");
-            f.addEventListener("load", () => f.src !== "about:blank" && fitFrame(f));
-            scr.appendChild(f);
-            deskFrames.push({ f, src: encodeURI(w.folder) + "/index.html", scr });
-          } else {
-            const t = document.createElement("div");
-            t.className = "soonTxt";
-            t.textContent = "COMING SOON";
-            scr.appendChild(t);
-          }
-          const n = document.createElement("span");
-          n.className = "n";
-          n.textContent = pad(i + 1);
-          const cap = document.createElement("span");
-          cap.className = "cap";
-          cap.innerHTML = `${w.title.replace(/</g, "&lt;")}<small>${w.type.replace(/</g, "&lt;")}</small>`;
-          b.append(scr, n, cap);
-          b.onclick = (e) => {
-            e.stopPropagation();
-            setOverview(false);
-            setTimeout(() => (closed ? openBinder(() => go(i)) : go(i)), 350);
-          };
-          box.appendChild(b);
-        });
-        // 화면 크기에 맞춰 작품(1600×1000)을 칸에 맞게 줄임
-        const ro = new ResizeObserver(() => deskFrames.forEach(({ f, scr }) => (f.style.transform = `scale(${scr.clientWidth / 1600})`)));
-        deskFrames.forEach(({ scr }) => ro.observe(scr));
-        document.getElementById("desk").onclick = () => setOverview(false);
-      }
-      let overview = false;
-      function setOverview(on) {
-        overview = on;
-        stopDemo();
-        document.body.classList.toggle("overview", on);
-        document.getElementById("desk").setAttribute("aria-hidden", String(!on));
-        allBtn.textContent = on ? "✕ 닫기" : "▦ 전체 보기";
-        if (on) hideWork();
-        else if (!closed) setTimeout(showWork, 400);
-        // 열 때 작품 불러오기 · 닫을 때 비워서 멈춤
-        deskFrames.forEach(({ f, src }) => (f.src = on ? src : "about:blank"));
-      }
-      allBtn.onclick = () => setOverview(!overview);
-      addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && overview) return setOverview(false);
-        if (overview) return;
-        if (e.key === "ArrowRight") next();
-        if (e.key === "ArrowLeft") (stopDemo(), go(cur - 1));
-      });
-      function ui() {
-        document.getElementById("count").textContent = closed ? "— / " + pad(S) : pad(cur + 1) + " / " + pad(S);
-        tabObjs.forEach((t) => t.set(!closed && t.i === cur));
-        const w = WORKS[cur];
-        const ob = document.getElementById("openBtn");
-        ob.hidden = closed || !(w && w.folder);
-        if (w && w.folder) ob.href = encodeURI(w.folder) + "/index.html";
-      }
-      const demoBtn = document.createElement("button"); // 시범 넘기기 버튼은 뺌 (기능만 남겨 둠)
-      let demoTm = null;
-      function startDemo() {
-        if (demoTm) return stopDemo();
-        demoBtn.textContent = "■ 멈추기";
-        if (closed) {
-          openBinder();
-          demoTm = setTimeout(() => {
-            demoTm = null;
-            startDemo();
-          }, 1900);
-          return;
-        }
-        const step = () => {
-          if (cur < S - 1) {
-            go(cur + 1);
-            demoTm = setTimeout(step, 2300);
-          } else
-            demoTm = setTimeout(() => {
-              go(0);
-              stopDemo();
-              setTimeout(closeBinder, LEAVES * 150 + 1300); // 다 넘긴 뒤 다시 표지를 덮음
-            }, 1800);
-        };
-        if (cur === S - 1) go(0);
-        demoTm = setTimeout(step, cur === S - 1 ? 1700 : 300);
-      }
-      function stopDemo() {
-        clearTimeout(demoTm);
-        demoTm = null;
-        demoBtn.textContent = "▶ 시범으로 넘겨 보기";
-      }
-      demoBtn.onclick = startDemo;
-
-      /* ═════════ 8. 그리기 ═════════ */
-      let wasMoving = true;
-      function frame(now) {
-        for (const lf of leaves) {
-          if (!lf.anim) continue;
-          const t = (now - lf.anim.t0) / lf.anim.dur;
-          if (t < 0) continue;
-          lf.moving = t < 1;
-          lf.theta = lf.anim.from + (lf.anim.to - lf.anim.from) * ease(Math.min(1, t));
-          placeLeaf(lf);
-          if (t >= 1) lf.anim = null;
-        }
-        // 어떤 이유로든 중간에 멈춘 종이는 제자리로 마저 넘김
-        if (!drag)
-          for (const lf of leaves) {
-            const goal = lf.i < cur ? Math.PI : 0;
-            if (!lf.anim && Math.abs(lf.theta - goal) > 1e-3) animLeaf(lf, goal, 0, 600);
-          }
-        const moving = anyMoving();
-        if (wasMoving && !moving) showWork();
-        wasMoving = moving;
-        // 비닐 반사 줄무늬가 마우스 · 시점에 따라 흐름
-        streakTex.offset.x = -mouse.x * 0.25;
-        streakTex.offset.y = mouse.y * 0.12;
-        // 바인더가 펼쳐지는 동작 (+ 카메라가 살짝 다가감)
-        if (opening) {
-          const t = Math.min(1, Math.max(0, (now - opening.t0) / opening.dur));
-          frontCover.rotation.z = opening.from + (opening.to - opening.from) * ease(t);
-          if (t >= 1) {
-            const then = opening.then;
-            opening = null;
-            if (then) then();
-          }
-        }
-        // 닫힌 바인더는 화면 가운데, 펼치면 두 면이 가운데 오도록 이동
-        target.x = CVX * (frontCover.rotation.z / -Math.PI);
-        placeCamera();
-        renderer.render(scene, camera);
-        cssRenderer.render(cssScene, camera);
-        requestAnimationFrame(frame);
-      }
-
-      /* 글꼴을 받은 뒤 종이를 그리고 시작 */
-      // 표지 설정: 같은 폴더의 cover.json (없으면 기본값). ?draft 로 열면 편집기에서 저장한 임시본
-      const coverReady = (async () => {
-        try {
-          if (location.search.includes("draft")) {
-            const d = localStorage.getItem("coverDraft");
-            if (d) return (COVER = mergeCover(JSON.parse(d)));
-          }
-        } catch {}
-        try {
-          const r = await fetch("cover.json", { cache: "no-store" });
-          if (r.ok) COVER = mergeCover(await r.json());
-        } catch {}
-      })();
-      // 내지 글(제목 · 구분 · ABOUT · HOW TO PLAY): 같은 폴더의 works.json 이 있으면 그걸로 덮어씀 (works_editor.html 에서 만듦)
-      const worksReady = (async () => {
-        let data = null;
-        try {
-          if (location.search.includes("draft")) data = JSON.parse(localStorage.getItem("worksDraft") || "null");
-        } catch {}
-        if (!data)
-          try {
-            const r = await fetch("works.json", { cache: "no-store" });
-            if (r.ok) data = await r.json();
-          } catch {}
-        if (!Array.isArray(data)) return;
-        data.forEach((d, i) => {
-          const w = WORKS.find((x) => x.folder && x.folder === d.folder) || (!d.folder && WORKS[i]);
-          if (!w) return;
-          for (const k of ["title", "type", "en"]) if (typeof d[k] === "string") w[k] = d[k];
-          for (const k of ["desc", "how"]) if (Array.isArray(d[k])) w[k] = d[k].map(String);
-        });
-      })();
-      Promise.race([
-        Promise.all(
-          ['800 40px Inter', '700 40px Inter', '400 40px "Pinyon Script"', '600 40px "IBM Plex Mono"', '700 40px "IBM Plex Mono"', '400 40px "IBM Plex Mono"', '500 40px "IBM Plex Mono"', 'italic 400 40px "IBM Plex Mono"', '400 40px "Nanum Gothic Coding"', '700 40px "Nanum Gothic Coding"'].map((f) =>
-            document.fonts.load(f, "가A").catch(() => 0),
-          ).concat(
-            coverReady.then(() => Promise.all(COVER.items.map((it) => document.fonts.load(coverFont(it, 40), "A가").catch(() => 0)))),
-          ),
-        ),
-        new Promise((r) => setTimeout(r, 2500)),
-      ])
-        .then(() => Promise.all([coverReady, worksReady]))
-        .then(() => {
-        build();
-        coverMat.color.setStyle(`rgb(${COVER.bg},${COVER.bg},${COVER.bg})`);
-        addCoverLabel();
-        frontCover.rotation.z = -Math.PI; // 처음엔 닫힌 상태 — 누르면 펼쳐짐
-        resize();
-        ui();
-        hideWork();
-        requestAnimationFrame(frame);
-        const ld = document.getElementById("loading");
-        ld.style.opacity = 0;
-        setTimeout(() => ld.remove(), 700);
-        // 처음: 닫힌 표지를 살짝 들썩여 '열 수 있다'는 힌트 (열 때까지 몇 초마다)
-        const peek = () => {
-          if (!closed || opening) return;
-          coverTo(-Math.PI + 0.32, 550, () => closed && coverTo(-Math.PI, 650));
-        };
-        setTimeout(peek, 1800);
-        setInterval(() => (closed ? peek() : 0), 6000);
-      });
+      // 처음 열었을 때: 주소 끝 #2 처럼 번호가 있으면 그 작품, 없으면 1번
+      const start = parseInt(location.hash.slice(1)) - 1;
+      show(WORKS[start] && WORKS[start].folder ? start : 0);
     </script>
   </body>
 </html>
